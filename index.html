@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSC Ticket System</title>
+<style>
+  :root {
+    --blue: #1a3a5c;
+    --blue-mid: #2563a8;
+    --blue-light: #e8f0fa;
+    --accent: #1e6fcf;
+    --gray-100: #f5f7fa;
+    --gray-200: #e9ecef;
+    --gray-400: #adb5bd;
+    --gray-600: #6c757d;
+    --gray-800: #343a40;
+    --white: #ffffff;
+    --success: #198754;
+    --danger: #dc3545;
+    --border: #d0d7e3;
+    --radius: 6px;
+    --shadow: 0 2px 12px rgba(26,58,92,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-800);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--blue);
+    color: var(--white);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-brand .logo-text {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .header-brand .logo-sub {
+    font-size: 12px;
+    color: #92b8e0;
+    margin-top: 1px;
+  }
+  .header-right {
+    font-size: 13px;
+    color: #92b8e0;
+  }
+
+  /* ── Nav tabs ── */
+  .nav-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 32px;
+    gap: 0;
+  }
+  .nav-tab {
+    padding: 14px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-600);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { color: var(--accent); }
+  .nav-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── Main layout ── */
+  .main-wrap {
+    max-width: 860px;
+    margin: 32px auto;
+    padding: 0 20px 60px;
+  }
+
+  /* ── Pages ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    background: var(--blue);
+    color: var(--white);
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-body { padding: 22px 24px; }
+
+  /* ── Form elements ── */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-row.one { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+  }
+  .form-group label .req {
+    color: var(--danger);
+    margin-left: 2px;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--gray-800);
+    font-family: inherit;
+    transition: border-color 0.15s;
+    background: var(--white);
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,168,0.10);
+  }
+  .form-group textarea {
+    resize: vertical;
+    min-height: 110px;
+  }
+  .form-hint {
+    font-size: 11.5px;
+    color: var(--gray-600);
+    margin-top: 2px;
+  }
+
+  /* ── Ticket Type selector ── */
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 0;
+  }
+  .type-btn {
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--white);
+  }
+  .type-btn:hover {
+    border-color: var(--accent);
+    background: var(--blue-light);
+  }
+  .type-btn.selected {
+    border-color: var(--accent);
+    background: var(--blue-light);
+  }
+  .type-btn .type-code {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--blue);
+    letter-spacing: 1px;
+  }
+  .type-btn .type-name {
+    font-size: 12px;
+    color: var(--gray-600);
+    margin-top: 4px;
+  }
+  .type-btn.selected .type-code { color: var(--accent); }
+
+  /* ── Sub-type box ── */
+  .subtype-wrap {
+    display: none;
+    margin-top: 16px;
+  }
+  .subtype-wrap.visible { display: block; }
+  .subtype-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    margin-bottom: 8px;
+  }
+  .subtype-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .subtype-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 13px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.12s;
+    color: var(--gray-800);
+  }
+  .subtype-item:hover {
+    border-color: var(--accent);
+    background: var(--blue-light);
+  }
+  .subtype-item.selected {
+    border-color: var(--accent);
+    background: var(--blue-light);
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* ── Assignee checkboxes ── */
+  .assignee-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .assignee-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.12s;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .assignee-card:hover { border-color: var(--accent); background: var(--blue-light); }
+  .assignee-card.selected {
+    border-color: var(--accent);
+    background: var(--blue-light);
+  }
+  .assignee-card input[type=checkbox] { margin-top: 2px; accent-color: var(--accent); }
+  .assignee-info .a-name { font-size: 13px; font-weight: 600; }
+  .assignee-info .a-email { font-size: 11px; color: var(--gray-600); margin-top: 2px; }
+
+  /* ── File upload ── */
+  .file-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--gray-100);
+  }
+  .file-zone:hover { border-color: var(--accent); background: var(--blue-light); }
+  .file-zone input { display: none; }
+  .file-zone-text { font-size: 13px; color: var(--gray-600); }
+  .file-zone-text strong { color: var(--accent); }
+  #file-list { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .file-chip {
+    background: var(--blue-light);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .file-chip .rm { cursor: pointer; color: var(--danger); font-weight: 700; }
+
+  /* ── Priority badge ── */
+  .priority-row { display: flex; gap: 10px; }
+  .priority-opt {
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.12s;
+  }
+  .priority-opt[data-val="High"]:hover,
+  .priority-opt[data-val="High"].selected { border-color: #dc3545; background: #fff5f5; color: #dc3545; }
+  .priority-opt[data-val="Medium"]:hover,
+  .priority-opt[data-val="Medium"].selected { border-color: #fd7e14; background: #fff8f0; color: #fd7e14; }
+  .priority-opt[data-val="Low"]:hover,
+  .priority-opt[data-val="Low"].selected { border-color: #198754; background: #f0fdf4; color: #198754; }
+
+  /* ── Submit button ── */
+  .btn-submit {
+    width: 100%;
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: background 0.15s;
+    margin-top: 8px;
+  }
+  .btn-submit:hover { background: var(--accent); }
+
+  /* ── My Tickets table ── */
+  .ticket-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .ticket-table th {
+    background: var(--blue);
+    color: var(--white);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+  .ticket-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: middle;
+  }
+  .ticket-table tr:hover td { background: var(--blue-light); }
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .badge-대기 { background: #fff3cd; color: #856404; }
+  .badge-진행 { background: #cfe2ff; color: #0a58ca; }
+  .badge-완료 { background: #d1e7dd; color: #0f5132; }
+  .badge-High { background: #f8d7da; color: #842029; }
+  .badge-Medium { background: #ffe5d0; color: #7d3c00; }
+  .badge-Low { background: #d1e7dd; color: #0f5132; }
+
+  /* ── Success modal ── */
+  .modal-bg {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-bg.show { display: flex; }
+  .modal-box {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 40px 36px;
+    text-align: center;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+  }
+  .modal-icon { font-size: 48px; margin-bottom: 16px; }
+  .modal-title { font-size: 20px; font-weight: 700; color: var(--blue); margin-bottom: 10px; }
+  .modal-sub { font-size: 14px; color: var(--gray-600); line-height: 1.6; }
+  .modal-ticket-no { font-size: 22px; font-weight: 800; color: var(--accent); margin: 14px 0; }
+  .btn-modal-close {
+    margin-top: 20px;
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    padding: 10px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-modal-close:hover { background: var(--accent); }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--gray-600);
+  }
+  .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  @media (max-width: 640px) {
+    .form-row { grid-template-columns: 1fr; }
+    .form-row.three { grid-template-columns: 1fr; }
+    .type-grid { grid-template-columns: repeat(3,1fr); }
+    .subtype-grid { grid-template-columns: 1fr; }
+    .assignee-grid { grid-template-columns: 1fr; }
+    .main-wrap { padding: 0 12px 60px; }
+    header { padding: 0 16px; }
+    .nav-bar { padding: 0 8px; }
+    .nav-tab { padding: 12px 14px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <div>
+      <div class="logo-text">🎫 SSC Ticket System</div>
+      <div class="logo-sub">Shared Service Center · Star Truck Korea</div>
+    </div>
+  </div>
+  <div class="header-right">문의: stk_it@hyosung.com</div>
+</header>
+
+<div class="nav-bar">
+  <div class="nav-tab active" onclick="showPage('new')">📝 신규 티켓</div>
+  <div class="nav-tab" onclick="showPage('list')">📋 내 티켓 목록</div>
+</div>
+
+<div class="main-wrap">
+
+  <!-- ══ PAGE: 신규 티켓 ══ -->
+  <div class="page active" id="page-new">
+
+    <!-- 1. 티켓 기본 정보 -->
+    <div class="card">
+      <div class="card-header">1. 티켓 기본 정보</div>
+      <div class="card-body">
+
+        <!-- 티켓 유형 -->
+        <div class="form-group" style="margin-bottom:20px;">
+          <label>티켓 유형 <span class="req">*</span></label>
+          <div class="type-grid" id="type-grid">
+            <div class="type-btn" onclick="selectType('GL')">
+              <div class="type-code">GL</div>
+              <div class="type-name">General Ledger</div>
+            </div>
+            <div class="type-btn" onclick="selectType('AR')">
+              <div class="type-code">AR</div>
+              <div class="type-name">Accounts Receivable</div>
+            </div>
+            <div class="type-btn" onclick="selectType('AP')">
+              <div class="type-code">AP</div>
+              <div class="type-name">Accounts Payable</div>
+            </div>
+          </div>
+
+          <!-- Sub-type: GL -->
+          <div class="subtype-wrap" id="sub-GL">
+            <div class="subtype-label">요청 구분 <span class="req">*</span></div>
+            <div class="subtype-grid">
+              <div class="subtype-item" onclick="selectSubtype(this)">Cash / Bank Statement</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Closing Request GL</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Fixed Asset</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">GL Posting JE Request</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Intercompany</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Clearing (Reconciliation) – GL</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">GL Posting JE Request (Auto Reverse)</div>
+            </div>
+          </div>
+          <!-- Sub-type: AR -->
+          <div class="subtype-wrap" id="sub-AR">
+            <div class="subtype-label">요청 구분 <span class="req">*</span></div>
+            <div class="subtype-grid">
+              <div class="subtype-item" onclick="selectSubtype(this)">Billing / Invoicing</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Closing Request AR</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Collections – Query / Request</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Customer Master Data</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Write Off / Bad Debt Request</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">General Query – AR</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Clearing (Reconciliation) – BP</div>
+            </div>
+          </div>
+          <!-- Sub-type: AP -->
+          <div class="subtype-wrap" id="sub-AP">
+            <div class="subtype-label">요청 구분 <span class="req">*</span></div>
+            <div class="subtype-grid">
+              <div class="subtype-item" onclick="selectSubtype(this)">Invoice Processing</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Payments</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Closing Request AP</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Vendor Posting Request</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Vendor Master Data</div>
+              <div class="subtype-item" onclick="selectSubtype(this)">Clearing (Reconciliation) – BP</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우선순위 -->
+        <div class="form-group" style="margin-bottom:20px;">
+          <label>우선순위 <span class="req">*</span></label>
+          <div class="priority-row">
+            <div class="priority-opt" data-val="High" onclick="selectPriority('High')">🔴 High</div>
+            <div class="priority-opt" data-val="Medium" onclick="selectPriority('Medium')">🟡 Medium</div>
+            <div class="priority-opt" data-val="Low" onclick="selectPriority('Low')">🟢 Low</div>
+          </div>
+        </div>
+
+        <!-- 날짜 -->
+        <div class="form-row three">
+          <div class="form-group">
+            <label>Posting Date <span class="req">*</span></label>
+            <input type="date" id="posting-date">
+          </div>
+          <div class="form-group">
+            <label>Doc Date <span class="req">*</span></label>
+            <input type="date" id="doc-date">
+          </div>
+          <div class="form-group">
+            <label>Reverse Date</label>
+            <input type="date" id="reverse-date">
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. Details -->
+    <div class="card">
+      <div class="card-header">2. Details</div>
+      <div class="card-body">
+        <div class="form-row one">
+          <div class="form-group">
+            <label>제목 <span class="req">*</span></label>
+            <input type="text" id="detail-title" placeholder="요청 내용을 한 줄로 요약해주세요">
+          </div>
+        </div>
+        <div class="form-row one">
+          <div class="form-group">
+            <label>상세 내용 <span class="req">*</span></label>
+            <textarea id="detail-body" placeholder="요청 내용을 상세히 기술해주세요.&#10;&#10;예) 처리 요청 사항, 관련 문서 번호, 특이사항 등"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 첨부파일 -->
+    <div class="card">
+      <div class="card-header">3. 첨부파일</div>
+      <div class="card-body">
+        <div class="file-zone" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" multiple onchange="handleFiles(this.files)">
+          <div class="file-zone-text">
+            📎 클릭하여 파일 선택 또는 드래그 앤 드롭<br>
+            <span style="font-size:11.5px;color:#adb5bd;">최대 10MB · 여러 파일 첨부 가능</span>
+          </div>
+        </div>
+        <div id="file-list"></div>
+      </div>
+    </div>
+
+    <!-- 4. 담당자 지정 -->
+    <div class="card">
+      <div class="card-header">4. 담당자 지정 (PKF 서현회계법인)</div>
+      <div class="card-body">
+        <div class="assignee-grid">
+          <div class="assignee-card" onclick="toggleAssignee(this, 'hyunuk.jung@pkf.kr')">
+            <input type="checkbox" id="a1">
+            <div class="assignee-info">
+              <div class="a-name">정현욱</div>
+              <div class="a-email">hyunuk.jung@pkf.kr</div>
+            </div>
+          </div>
+          <div class="assignee-card" onclick="toggleAssignee(this, 'jiwoo.shin@pkf.kr')">
+            <input type="checkbox" id="a2">
+            <div class="assignee-info">
+              <div class="a-name">신지우</div>
+              <div class="a-email">jiwoo.shin@pkf.kr</div>
+            </div>
+          </div>
+          <div class="assignee-card" onclick="toggleAssignee(this, 'hyojeong.choi@pkf.kr')">
+            <input type="checkbox" id="a3">
+            <div class="assignee-info">
+              <div class="a-name">최효정</div>
+              <div class="a-email">hyojeong.choi@pkf.kr</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-hint" style="margin-top:10px;">선택된 담당자에게 티켓 접수 알림이 자동 발송됩니다.</div>
+      </div>
+    </div>
+
+    <button class="btn-submit" onclick="submitTicket()">✅ 티켓 제출</button>
+  </div>
+
+  <!-- ══ PAGE: 내 티켓 목록 ══ -->
+  <div class="page" id="page-list">
+    <div class="card">
+      <div class="card-header">📋 내 티켓 목록</div>
+      <div class="card-body" style="padding:0;">
+        <div id="ticket-list-wrap"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-wrap -->
+
+<!-- ── Success Modal ── -->
+<div class="modal-bg" id="modal-success">
+  <div class="modal-box">
+    <div class="modal-icon">✅</div>
+    <div class="modal-title">티켓이 접수되었습니다</div>
+    <div class="modal-ticket-no" id="modal-ticket-no"></div>
+    <div class="modal-sub">담당자에게 알림이 발송되었습니다.<br>내 티켓 목록에서 처리 현황을 확인하세요.</div>
+    <button class="btn-modal-close" onclick="closeModal()">확인</button>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let selectedType = '';
+let selectedSubtype = '';
+let selectedPriority = '';
+let selectedAssignees = [];
+let attachedFiles = [];
+let tickets = JSON.parse(localStorage.getItem('ssc_tickets') || '[]');
+let ticketCounter = parseInt(localStorage.getItem('ssc_counter') || '100');
+
+// ── Nav ──
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.target.classList.add('active');
+  if (page === 'list') renderTicketList();
+}
+
+// ── Ticket Type ──
+function selectType(type) {
+  selectedType = type;
+  selectedSubtype = '';
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.querySelectorAll('.subtype-wrap').forEach(w => w.classList.remove('visible'));
+  document.querySelectorAll('.subtype-item').forEach(i => i.classList.remove('selected'));
+  document.getElementById('sub-' + type).classList.add('visible');
+}
+
+function selectSubtype(el) {
+  document.querySelectorAll('.subtype-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedSubtype = el.textContent.trim();
+}
+
+// ── Priority ──
+function selectPriority(val) {
+  selectedPriority = val;
+  document.querySelectorAll('.priority-opt').forEach(o => o.classList.remove('selected'));
+  document.querySelector(`.priority-opt[data-val="${val}"]`).classList.add('selected');
+}
+
+// ── Assignee ──
+function toggleAssignee(card, email) {
+  const cb = card.querySelector('input[type=checkbox]');
+  cb.checked = !cb.checked;
+  card.classList.toggle('selected', cb.checked);
+  if (cb.checked) {
+    if (!selectedAssignees.includes(email)) selectedAssignees.push(email);
+  } else {
+    selectedAssignees = selectedAssignees.filter(e => e !== email);
+  }
+}
+
+// ── Files ──
+function handleFiles(files) {
+  Array.from(files).forEach(f => {
+    if (!attachedFiles.find(x => x.name === f.name)) attachedFiles.push(f);
+  });
+  renderFileList();
+}
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  el.innerHTML = attachedFiles.map((f, i) =>
+    `<div class="file-chip">📄 ${f.name} <span class="rm" onclick="removeFile(${i})">✕</span></div>`
+  ).join('');
+}
+function removeFile(i) {
+  attachedFiles.splice(i, 1);
+  renderFileList();
+}
+
+// ── Drag & Drop ──
+const zone = document.querySelector('.file-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = 'var(--accent)'; });
+zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.style.borderColor = '';
+  handleFiles(e.dataTransfer.files);
+});
+
+// ── Submit ──
+function submitTicket() {
+  const title = document.getElementById('detail-title').value.trim();
+  const body = document.getElementById('detail-body').value.trim();
+  const postDate = document.getElementById('posting-date').value;
+  const docDate = document.getElementById('doc-date').value;
+
+  if (!selectedType) return alert('티켓 유형을 선택해주세요.');
+  if (!selectedSubtype) return alert('요청 구분을 선택해주세요.');
+  if (!selectedPriority) return alert('우선순위를 선택해주세요.');
+  if (!postDate) return alert('Posting Date를 입력해주세요.');
+  if (!docDate) return alert('Doc Date를 입력해주세요.');
+  if (!title) return alert('제목을 입력해주세요.');
+  if (!body) return alert('상세 내용을 입력해주세요.');
+
+  ticketCounter++;
+  const no = `SSC-${new Date().getFullYear()}-${String(ticketCounter).padStart(4,'0')}`;
+  const ticket = {
+    no,
+    type: selectedType,
+    subtype: selectedSubtype,
+    priority: selectedPriority,
+    postDate,
+    docDate,
+    reverseDate: document.getElementById('reverse-date').value,
+    title,
+    body,
+    assignees: [...selectedAssignees],
+    files: attachedFiles.map(f => f.name),
+    status: '대기',
+    createdAt: new Date().toLocaleString('ko-KR')
+  };
+
+  tickets.unshift(ticket);
+  localStorage.setItem('ssc_tickets', JSON.stringify(tickets));
+  localStorage.setItem('ssc_counter', ticketCounter);
+
+  document.getElementById('modal-ticket-no').textContent = no;
+  document.getElementById('modal-success').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-success').classList.remove('show');
+  resetForm();
+}
+
+function resetForm() {
+  selectedType = ''; selectedSubtype = ''; selectedPriority = ''; selectedAssignees = []; attachedFiles = [];
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.subtype-wrap').forEach(w => w.classList.remove('visible'));
+  document.querySelectorAll('.subtype-item').forEach(i => i.classList.remove('selected'));
+  document.querySelectorAll('.priority-opt').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('.assignee-card').forEach(c => { c.classList.remove('selected'); c.querySelector('input').checked = false; });
+  document.getElementById('detail-title').value = '';
+  document.getElementById('detail-body').value = '';
+  document.getElementById('posting-date').value = '';
+  document.getElementById('doc-date').value = '';
+  document.getElementById('reverse-date').value = '';
+  document.getElementById('file-list').innerHTML = '';
+}
+
+// ── Ticket List ──
+function renderTicketList() {
+  const wrap = document.getElementById('ticket-list-wrap');
+  if (!tickets.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>접수된 티켓이 없습니다.</p></div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <table class="ticket-table">
+      <thead>
+        <tr>
+          <th>번호</th>
+          <th>유형</th>
+          <th>요청 구분</th>
+          <th>제목</th>
+          <th>우선순위</th>
+          <th>상태</th>
+          <th>접수일</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tickets.map(t => `
+          <tr>
+            <td><strong>${t.no}</strong></td>
+            <td><span class="badge" style="background:var(--blue-light);color:var(--blue)">${t.type}</span></td>
+            <td style="font-size:12.5px;color:var(--gray-600)">${t.subtype}</td>
+            <td>${t.title}</td>
+            <td><span class="badge badge-${t.priority}">${t.priority}</span></td>
+            <td><span class="badge badge-${t.status}">${t.status}</span></td>
+            <td style="font-size:12px;color:var(--gray-600)">${t.createdAt}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+</script>
+</body>
+</html>
