@@ -1017,7 +1017,7 @@ async function showDetail(reqId) {
     let html = sec('기본 정보') +
       row('티켓번호', reqId) +
       row('신청자', f.RequesterEmail) +
-      row('유형', '<span class="badge badge-'+(f.TicketType||'")>'+f.TicketType+'</span>') +
+      row('유형', '<span class="badge badge-'+(f.TicketType||'')+'">'+(f.TicketType||'-')+'</span>') +
       row('요청 구분', f.SubType) +
       row('우선순위', '<span class="badge badge-'+(f.Priority||'')+'">'+f.Priority+'</span>') +
       row('상태', '<span style="font-weight:600;color:'+statusColor+'">'+f.Status+'</span>') +
