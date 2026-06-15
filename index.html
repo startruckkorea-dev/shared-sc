@@ -849,7 +849,7 @@ async function submitTicket() {
       DocDate:      docDate,
       ReverseDate:  document.getElementById('ssc-reverse-date').value || null,
       Detail:       '<div>'+detail+'</div>',
-      PKFAssignees: selectedPKF.map(p=>p.name+'<'+p.email+'>').join('; '),
+      PKFAssignees: selectedPKF.map(p=>p.name+'||'+p.email).join('; '),
     };
     for (const [key,val] of Object.entries(extraFields)) {
       if (val == null) continue;
@@ -932,7 +932,7 @@ async function loadMyList() {
     dynLoad(false);
     pgSet('list', mine, (item, idx) => {
       const f = item.fields, total = mine.length;
-      const lpkf=(f.PKFAssignees||'').split(';').map(p=>p.trim().split('<')[0].trim()).filter(Boolean).join(', ');
+      const lpkf=(f.PKFAssignees||'').split(';').map(p=>{const s=stripHtml(p).trim();return s.split('||')[0].trim();}).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+item.id+')" style="cursor:pointer">'+
         '<td>'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'-')+'</td>'+
@@ -967,7 +967,7 @@ async function loadApprovalQueue() {
     pgSet('appr', mine, (item,idx)=>{
       const f=item.fields, rf=reqMap[String(f.RequestID)]||{};
       const total=mine.length;
-      const pkfNames=(rf.PKFAssignees||'').split(';').map(p=>p.trim().split('<')[0].trim()).filter(Boolean).join(', ');
+      const pkfNames=(rf.PKFAssignees||'').split(';').map(p=>{const s=stripHtml(p).trim();return s.split('||')[0].trim();}).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+f.RequestID+')" style="cursor:pointer">'+
         '<td style="color:#0078d4">'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'')+'</td>'+
@@ -1020,7 +1020,7 @@ async function loadAdminList() {
     dynLoad(false);
     pgSet('admin',items,(item,idx)=>{
       const f=item.fields, total=items.length;
-      const apkf=(f.PKFAssignees||'').split(';').map(p=>p.trim().split('<')[0].trim()).filter(Boolean).join(', ');
+      const apkf=(f.PKFAssignees||'').split(';').map(p=>{const s=stripHtml(p).trim();return s.split('||')[0].trim();}).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+item.id+')" style="cursor:pointer">'+
         '<td>'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'')+'</td>'+
@@ -1088,7 +1088,7 @@ async function showDetail(reqId) {
       row('Doc Date', fmtDateOnly(f.DocDate)) +
       row('Reverse Date', fmtDateOnly(f.ReverseDate)||'-') +
       row('상세 내용', f.Detail, true) +
-      row('PKF 담당자', (f.PKFAssignees||'').split(';').map(p=>{p=p.trim();const lt=p.indexOf('<'),gt=p.indexOf('>');return lt>-1&&gt>-1?p.substring(0,lt).trim()+' ('+p.substring(lt+1,gt).trim()+')':p;}).filter(Boolean).join('\n')||'-', true);
+      row('PKF 담당자', stripHtml(f.PKFAssignees||'').split(';').map(p=>{const parts=p.trim().split('||');return parts[0]?(parts[0].trim()+(parts[1]?' ('+parts[1].trim()+')':'')):p.trim();}).filter(Boolean).join('\n')||'-', true);
 
     // Approvals
     let apprHtml = '';
