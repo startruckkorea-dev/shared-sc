@@ -503,11 +503,19 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 <div id="loading"><div class="loading-box"><div class="spinner"></div><span>처리 중입니다...</span></div></div>
 
 <!-- ── No Auth ── -->
-<div id="no-auth-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,39,68,.45);align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:14px;padding:40px 44px;max-width:380px;width:90%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.18)">
-    <div style="font-size:2rem;margin-bottom:12px">🔒</div>
-    <div style="font-size:1rem;font-weight:700;color:#0f2744;margin-bottom:8px">접근 권한 없음</div>
-    <div style="font-size:.83rem;color:#64748b;line-height:1.7;margin-bottom:20px">관리자 전용 메뉴입니다.</div>
+<div id="no-auth-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,39,68,.45);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:40px 44px;max-width:420px;width:90%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.18)">
+    <div style="width:52px;height:52px;border-radius:50%;background:#fff0f0;border:2px solid #fca5a5;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.4rem">⚠️</div>
+    <div style="font-size:1.05rem;font-weight:700;color:#0f2744;margin-bottom:8px">접근 권한 없음</div>
+    <div style="font-size:.83rem;color:#64748b;line-height:1.7;margin-bottom:20px">관리자 전용 메뉴입니다.<br>접근 권한이 없습니다.</div>
+    <div style="background:#f0f6ff;border-radius:8px;padding:14px 18px;margin-bottom:24px;text-align:left">
+      <div style="font-size:.82rem;font-weight:700;color:#0078d4;margin-bottom:8px">접근 권한 신청 방법</div>
+      <div style="font-size:.8rem;color:#323130;line-height:1.8">
+        1. BU Admin에게 권한 요청<br>
+        2. BU Admin이 아래 시스템으로 티켓 생성
+      </div>
+      <a href="https://itsm-ticket.startruckkorea.com" target="_blank" style="font-size:.8rem;color:#0078d4;text-decoration:none;display:block;margin-top:6px">itsm-ticket.startruckkorea.com</a>
+    </div>
     <button onclick="document.getElementById('no-auth-modal').style.display='none'" style="background:#0078d4;color:#fff;border:none;border-radius:8px;padding:10px 32px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit">확인</button>
   </div>
 </div>
