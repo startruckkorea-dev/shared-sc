@@ -383,21 +383,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       <!-- 5. 결재자 지정 -->
       <div class="section-title">5. 결재자 지정</div>
 
-      <!-- 1차: Line Manager -->
-      <div class="appr-block">
-        <div class="appr-title">1차 결재자 <span style="color:#a4262c;font-size:11px">*</span> <span style="font-size:11px;color:#605e5c;font-weight:400">— Line Manager (팀장)</span></div>
-        <div class="appr-grid">
-          <select id="a1-dept" onchange="onDeptChange(1)"><option value="">부서</option></select>
-          <select id="a1-team" onchange="onTeamChange(1)" disabled><option value="">팀</option></select>
-          <select id="a1-person" onchange="onPersonChange(1)" disabled><option value="">직원 선택</option></select>
-        </div>
-        <div class="form-row" style="margin-top:8px">
-          <input type="text"  id="a1-name"  readonly placeholder="이름"  style="border:1px solid #d2d0ce;border-radius:4px;padding:6px 10px;font-size:13px;background:#f3f2f1">
-          <input type="email" id="a1-email" readonly placeholder="이메일" style="border:1px solid #d2d0ce;border-radius:4px;padding:6px 10px;font-size:13px;background:#f3f2f1">
-        </div>
-      </div>
-
-      <!-- 2차: PKF 담당자 -->
+      <!-- PKF 담당자 -->
       <div class="appr-block">
         <div class="appr-title">담당자 지정 <span style="color:#a4262c;font-size:11px">*</span></div>
         <div style="font-size:11.5px;color:#605e5c;margin-bottom:10px">담당자를 선택하면 티켓 접수 알림이 담당자에게 자동 메일 발송되며, 해당 담당자가 SSC 결재함 접근을 통해 결재 처리 가능합니다.</div>
@@ -1075,6 +1061,7 @@ async function showDetail(reqId) {
     const r = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId+'?$expand=fields');
     const f = r.fields;
     if(f.Detail) f.Detail = stripHtml(f.Detail);
+    // PKFAssignees는 파싱용이므로 stripHtml 제외
 
     const sec = t=>'<div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:#0078d4;padding:6px 10px;background:#f0f6ff;border-left:3px solid #0078d4;border-radius:3px">'+t+'</div>';
     const row = (l,v,full)=>{
@@ -1101,7 +1088,7 @@ async function showDetail(reqId) {
       row('Doc Date', fmtDateOnly(f.DocDate)) +
       row('Reverse Date', fmtDateOnly(f.ReverseDate)||'-') +
       row('상세 내용', f.Detail, true) +
-      row('PKF 담당자', (f.PKFAssignees||'').split(';').map(p=>{const m=p.trim().match(/^(.+?)<(.+?)>$/);return m?m[1].trim()+' ('+m[2].trim()+')':p.trim();}).filter(Boolean).join('\n')||'-', true);
+      row('PKF 담당자', (f.PKFAssignees||'').split(';').map(p=>{p=p.trim();const lt=p.indexOf('<'),gt=p.indexOf('>');return lt>-1&&gt>-1?p.substring(0,lt).trim()+' ('+p.substring(lt+1,gt).trim()+')':p;}).filter(Boolean).join('\n')||'-', true);
 
     // Approvals
     let apprHtml = '';
