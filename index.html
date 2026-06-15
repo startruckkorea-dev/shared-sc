@@ -664,13 +664,13 @@ async function loadSystemConfig() {
       const apEmail = cfg['SHARED-SC_CONTACT_AP'] ? cfg['SHARED-SC_CONTACT_AP'].email : '';
       const el = document.getElementById('sc-contact-emails');
       if (el) {
-        const parts = [];
-        if (glEmail) parts.push('<span>GL: <a href="mailto:'+glEmail+'" style="color:#0078d4;text-decoration:none">'+glEmail+'</a></span>');
-        if (arEmail) parts.push('<span>AR: <a href="mailto:'+arEmail+'" style="color:#0078d4;text-decoration:none">'+arEmail+'</a></span>');
-        if (apEmail) parts.push('<span>AP: <a href="mailto:'+apEmail+'" style="color:#0078d4;text-decoration:none">'+apEmail+'</a></span>');
-        if (parts.length) {
-          el.style.cssText = 'font-size:11px;color:#605e5c;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-          el.innerHTML = 'BU Admin 문의 &nbsp;' + parts.join(' <span style="color:#d2d0ce">|</span> ');
+        const lines = [];
+        if (glEmail) lines.push('BU Admin(GL 관련) 문의 Email: <a href="mailto:'+glEmail+'" style="color:#0078d4;text-decoration:none">'+glEmail+'</a>');
+        if (arEmail) lines.push('BU Admin(AR 관련) 문의 Email: <a href="mailto:'+arEmail+'" style="color:#0078d4;text-decoration:none">'+arEmail+'</a>');
+        if (apEmail) lines.push('BU Admin(AP 관련) 문의 Email: <a href="mailto:'+apEmail+'" style="color:#0078d4;text-decoration:none">'+apEmail+'</a>');
+        if (lines.length) {
+          el.style.cssText = 'font-size:11px;color:#605e5c;margin-top:4px;line-height:1.9';
+          el.innerHTML = lines.join('<br>');
         }
       }
     }
