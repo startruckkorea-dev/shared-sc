@@ -958,7 +958,7 @@ async function loadMyList() {
       return '<tr onclick="showDetail('+item.id+')" style="cursor:pointer">'+
         '<td>'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'-')+'</td>'+
-        '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.TicketTitle||'-')+'</td>'+
+        '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
         '<td><span class="badge badge-'+f.TicketType+'">'+f.TicketType+'</span></td>'+
         '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
@@ -992,7 +992,7 @@ async function loadApprovalQueue() {
       return '<tr onclick="showDetail('+f.RequestID+')" style="cursor:pointer">'+
         '<td style="color:#0078d4">'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'')+'</td>'+
-        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.TicketTitle||'-')+'</td>'+
+        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.Title||'-')+'</td>'+
         '<td><span class="badge badge-'+(rf.TicketType||'')+'">'+( rf.TicketType||'-')+'</span></td>'+
         '<td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.SubType||'-')+'</td>'+
         '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(pkfNames||'-')+'</td>'+
@@ -1045,7 +1045,7 @@ async function loadAdminList() {
       return '<tr onclick="showDetail('+item.id+')" style="cursor:pointer">'+
         '<td>'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'')+'</td>'+
-        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.TicketTitle||'-')+'</td>'+
+        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.TicketType||'')+'">'+( f.TicketType||'-')+'</span></td>'+
         '<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
         '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(apkf||'-')+'</td>'+
