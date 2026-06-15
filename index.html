@@ -868,7 +868,7 @@ async function submitTicket() {
           try {
             const buf = await f.arrayBuffer();
             const res = await fetch(
-              GRAPH+'/drives/'+drv.id+'/root:/SSC_Requests/'+reqId+'/'+encodeURIComponent(f.name)+':/content',
+              GRAPH+'/drives/'+drv.id+'/root:/SSC_Requests_AttachedFiles/'+reqId+'/'+encodeURIComponent(f.name)+':/content',
               {method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':f.type||'application/octet-stream'},body:buf}
             );
             if(res.ok){const u=await res.json();links.push(f.name+'||'+drv.id+'||'+u.id);}
