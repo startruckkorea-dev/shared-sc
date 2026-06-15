@@ -615,7 +615,6 @@ async function boot(account) {
     siteId = site.id;
     await loadSystemConfig();
     await loadListIds();
-    await loadEmployees();
     await refreshApprBadge();
     setInterval(refreshApprBadge, 60000);
   } catch(e) { showAlert('SharePoint 연결 오류', e.message, '⚠️'); }
@@ -705,27 +704,7 @@ function isAdmin() {
 }
 
 // ══ Employee data ══
-async function loadEmployees() {
-  try {
-    const drives = await api('/sites/'+siteId+'/drives');
-    const drv = (drives.value||[]).find(d=>d.name==='문서')||drives.value[0];
-    const t = await getToken();
-    const res = await fetch(GRAPH+'/drives/'+drv.id+'/root:/employee_search.xlsx:/content',{headers:{Authorization:'Bearer '+t}});
-    if (!res.ok) throw new Error('employee_search.xlsx not found');
-    const buf = await res.arrayBuffer();
-    const wb = XLSX.read(buf,{type:'array'});
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-    employeeData = rows.map(r=>({
-      dept: r['Department']||'',
-      team: r['Team']||'',
-      name: r['EngName']||'',
-      email:(r['EMail']||r['email']||'')
-    })).filter(r=>r.email&&r.name);
-    const depts = [...new Set(employeeData.map(e=>e.dept))].sort();
-    document.getElementById('a1-dept').innerHTML = '<option value="">부서</option>' +
-      depts.map(d=>'<option value="'+d+'">'+d+'</option>').join('');
-  } catch(e) { console.warn('[Employees]', e.message); }
-}
+// loadEmployees 제거 (1차 결재자 UI 삭제)
 
 function onDeptChange(idx) {
   const dept = document.getElementById('a'+idx+'-dept').value;
