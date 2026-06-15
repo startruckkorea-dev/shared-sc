@@ -14,9 +14,9 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 /* ── Login ── */
 #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(145deg, #0f2744 0%, #0078d4 100%); }
 .login-card { background: #fff; border-radius: 20px; padding: 52px 48px; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,.22); max-width: 400px; width: 100%; }
-.login-logo { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 20px; }
+.login-logo { width: 64px; height: 64px; background: linear-gradient(135deg, #0078d4, #00bcf2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; margin: 0 auto 20px; box-shadow: 0 8px 20px rgba(0,120,212,.3); }
 .login-title { font-size: 1.2rem; font-weight: 700; color: #0f2744; margin-bottom: 4px; }
-.login-co { font-size: .82rem; color: #94a3b8; margin-bottom: 28px; }
+.login-co { font-size: .82rem; color: #94a3b8; margin-bottom: 8px; }
 .btn-login { background: linear-gradient(135deg, #0078d4, #005a9e); color: #fff; border: none; border-radius: 10px; padding: 13px 0; font-size: .92rem; font-weight: 600; cursor: pointer; width: 100%; font-family: inherit; transition: all .2s; }
 .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,120,212,.4); }
 .btn-login:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; box-shadow: none; }
@@ -230,6 +230,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
     <div class="login-logo">📒</div>
     <div class="login-title">Shared SC</div>
     <div class="login-co">Shared Service Center · Star Truck Korea</div>
+    <div style="font-size:.78rem;color:#64748b;margin-bottom:20px;line-height:1.6">Hyosung M365 계정 또는 STK 계정으로 로그인하세요</div>
     <button class="btn-login" id="btn-login" onclick="signIn()" disabled>로딩 중...</button>
     <div style="font-size:.72rem;color:#555;margin-top:20px">© Star Truck Korea · shared-sc</div>
     <div id="login-err"></div>
@@ -242,6 +243,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
     <div>
       <div class="title">Shared SC</div>
       <div style="font-size:11px;color:#605e5c;margin-top:3px">Shared Service Center — Star Truck Korea</div>
+      <div id="sc-contact-emails" style="font-size:11px;color:#605e5c;margin-top:4px;line-height:1.8"></div>
     </div>
     <div class="header-right" style="flex-direction:column;align-items:flex-end;gap:8px">
       <div style="display:flex;align-items:center;gap:10px">
@@ -643,6 +645,26 @@ async function loadSystemConfig() {
     if(admins.length) ADMIN_EMAILS.splice(0,ADMIN_EMAILS.length,...admins);
   } catch(e) { console.warn('[Config] xlsx load failed:', e.message); _configLoaded=true; }
 
+  // BU Admin 연락처 이메일 표시
+  try {
+    const cfg = _sysConfig;
+    if (cfg) {
+      const glEmail = cfg['SHARED-SC_CONTACT_GL'] ? cfg['SHARED-SC_CONTACT_GL'].email : '';
+      const arEmail = cfg['SHARED-SC_CONTACT_AR'] ? cfg['SHARED-SC_CONTACT_AR'].email : '';
+      const apEmail = cfg['SHARED-SC_CONTACT_AP'] ? cfg['SHARED-SC_CONTACT_AP'].email : '';
+      const el = document.getElementById('sc-contact-emails');
+      if (el) {
+        const parts = [];
+        if (glEmail) parts.push('GL: <a href="mailto:'+glEmail+'" style="color:#0078d4;text-decoration:none">'+glEmail+'</a>');
+        if (arEmail) parts.push('AR: <a href="mailto:'+arEmail+'" style="color:#0078d4;text-decoration:none">'+arEmail+'</a>');
+        if (apEmail) parts.push('AP: <a href="mailto:'+apEmail+'" style="color:#0078d4;text-decoration:none">'+apEmail+'</a>');
+        if (parts.length) {
+          el.innerHTML = 'BU Admin 문의 — ' + parts.join(' &nbsp;|&nbsp; ');
+        }
+      }
+    }
+  } catch(e) { console.warn('[Contact]', e); }
+
   // Show admin tab if applicable
   if (isAdmin()) document.getElementById('tab-admin-btn').style.display = 'inline-block';
 }
@@ -708,15 +730,18 @@ function selectType(type, el) {
   document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('selected'));
   el.classList.add('selected');
   document.querySelectorAll('.subtype-wrap').forEach(w=>w.classList.remove('visible'));
-  document.querySelectorAll('.subtype-item').forEach(i=>i.classList.remove('selected'));
+  document.querySelectorAll('.subtype-item').forEach(i=>i.classList.remove('selected')); selectedSubtype='';
   document.getElementById('sub-'+type).classList.add('visible');
 }
 function selectSubtype(el) {
-  // 현재 활성화된 subtype-wrap 안에서만 선택 해제
+  // 다중 선택 toggle
+  el.classList.toggle('selected');
+  // 선택된 항목들 모아서 저장
   const wrap = el.closest('.subtype-wrap');
-  if (wrap) wrap.querySelectorAll('.subtype-item').forEach(i=>i.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedSubtype = el.textContent.trim();
+  if (wrap) {
+    const selected = Array.from(wrap.querySelectorAll('.subtype-item.selected')).map(i=>i.textContent.trim());
+    selectedSubtype = selected.join(', ');
+  }
 }
 function selectPriority(val) {
   selectedPriority=val;
@@ -752,7 +777,7 @@ function resetForm() {
   selectedType=''; selectedSubtype=''; selectedPriority=''; selectedPKF=[]; attachedFiles=[];
   document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('selected'));
   document.querySelectorAll('.subtype-wrap').forEach(w=>w.classList.remove('visible'));
-  document.querySelectorAll('.subtype-item').forEach(i=>i.classList.remove('selected'));
+  document.querySelectorAll('.subtype-item').forEach(i=>i.classList.remove('selected')); selectedSubtype='';
   document.querySelectorAll('.priority-opt').forEach(o=>o.classList.remove('selected'));
   document.querySelectorAll('.assignee-card').forEach(c=>{c.classList.remove('selected');c.querySelector('input').checked=false;});
   ['ssc-title','ssc-detail','ssc-posting-date','ssc-doc-date','ssc-reverse-date'].forEach(id=>{
