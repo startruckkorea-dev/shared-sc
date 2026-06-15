@@ -48,7 +48,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .card { background: #fff; border-radius: 6px; border: 1px solid #edebe9; padding: 24px; margin-bottom: 16px; }
 
 /* ── Section title ── */
-.section-title { font-size: 13px; font-weight: 600; color: #107c10; margin: 18px 0 10px; padding: 6px 10px; background: #f0fff4; border-radius: 4px; border-left: 3px solid #107c10; }
+.section-title { font-size: 13px; font-weight: 600; color: #0078d4; margin: 18px 0 10px; padding: 6px 10px; background: #f0f6ff; border-radius: 4px; border-left: 3px solid #0078d4; }
 .section-title.blue { color: #0078d4; background: #f0f6ff; border-left-color: #0078d4; }
 .section-title.red { color: #a4262c; background: #fdf0f1; border-left-color: #a4262c; }
 
@@ -63,7 +63,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
   border: 1px solid #d2d0ce; border-radius: 4px; padding: 7px 10px;
   font-size: 13px; color: #323130; background: #fff; font-family: inherit;
 }
-.form-group select:focus, .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #107c10; }
+.form-group select:focus, .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #0078d4; }
 .form-group input[readonly], .form-group select:disabled { background: #f3f2f1; color: #a19f9d; cursor: not-allowed; }
 .form-group textarea { resize: vertical; min-height: 90px; }
 
@@ -74,12 +74,12 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
   padding: 7px 18px; cursor: pointer; transition: all .15s; background: #fff;
   display: flex; align-items: center; gap: 8px;
 }
-.type-btn:hover { border-color: #107c10; background: #f0fff4; }
-.type-btn.selected { border-color: #107c10; background: #f0fff4; }
+.type-btn:hover { border-color: #0078d4; background: #f0f6ff; }
+.type-btn.selected { border-color: #0078d4; background: #f0f6ff; }
 .type-btn .type-code { font-size: 13px; font-weight: 700; color: #323130; }
 .type-btn .type-name { font-size: 12px; color: #8a8886; }
-.type-btn.selected .type-code { color: #107c10; }
-.type-btn.selected .type-name { color: #107c10; }
+.type-btn.selected .type-code { color: #0078d4; }
+.type-btn.selected .type-name { color: #0078d4; }
 
 /* ── Subtype ── */
 .subtype-wrap { display: none; margin-top: 14px; }
@@ -90,8 +90,8 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
   border: 1px solid #d2d0ce; border-radius: 4px; padding: 8px 12px;
   font-size: 12.5px; cursor: pointer; transition: all .12s; color: #323130; background: #fff;
 }
-.subtype-item:hover { border-color: #107c10; background: #f0fff4; }
-.subtype-item.selected { border-color: #107c10; background: #f0fff4; font-weight: 600; color: #107c10; }
+.subtype-item:hover { border-color: #0078d4; background: #f0f6ff; }
+.subtype-item.selected { border-color: #0078d4; background: #f0f6ff; font-weight: 600; color: #0078d4; }
 
 /* ── Priority ── */
 .priority-row { display: flex; gap: 8px; }
@@ -119,15 +119,15 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
   border: 1px solid #d2d0ce; border-radius: 4px; padding: 12px 14px;
   cursor: pointer; transition: all .12s; display: flex; align-items: flex-start; gap: 10px;
 }
-.assignee-card:hover { border-color: #107c10; background: #f0fff4; }
-.assignee-card.selected { border-color: #107c10; background: #f0fff4; }
-.assignee-card input[type=checkbox] { margin-top: 2px; accent-color: #107c10; }
+.assignee-card:hover { border-color: #0078d4; background: #f0f6ff; }
+.assignee-card.selected { border-color: #0078d4; background: #f0f6ff; }
+.assignee-card input[type=checkbox] { margin-top: 2px; accent-color: #0078d4; }
 .a-name { font-size: 13px; font-weight: 600; }
 .a-email { font-size: 11px; color: #605e5c; margin-top: 2px; }
 
 /* ── File upload ── */
 .file-area { border: 1.5px dashed #d2d0ce; border-radius: 4px; padding: 16px; text-align: center; cursor: pointer; transition: all .2s; }
-.file-area:hover { border-color: #107c10; background: #f0fff4; }
+.file-area:hover { border-color: #0078d4; background: #f0f6ff; }
 .file-area input { display: none; }
 .file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
 .file-item { display: flex; justify-content: space-between; align-items: center; background: #f3f2f1; border-radius: 4px; padding: 5px 10px; font-size: 12px; }
@@ -135,8 +135,8 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 
 /* ── Buttons ── */
 .btn-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-.btn-primary { background: #107c10; color: #fff; border: none; border-radius: 4px; padding: 9px 24px; font-size: 14px; cursor: pointer; font-weight: 500; font-family: inherit; }
-.btn-primary:hover { background: #0e6b0e; }
+.btn-primary { background: #0078d4; color: #fff; border: none; border-radius: 4px; padding: 9px 24px; font-size: 14px; cursor: pointer; font-weight: 500; font-family: inherit; }
+.btn-primary:hover { background: #106ebe; }
 .btn-secondary { background: #fff; color: #323130; border: 1px solid #d2d0ce; border-radius: 4px; padding: 9px 24px; font-size: 14px; cursor: pointer; font-family: inherit; }
 .btn-secondary:hover { background: #f3f2f1; }
 
@@ -144,7 +144,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .list-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .list-table th { padding: 9px 12px; text-align: left; background: #f3f2f1; border-bottom: 1px solid #edebe9; font-weight: 600; color: #323130; font-size: .75rem; white-space: nowrap; }
 .list-table td { padding: 9px 12px; border-bottom: 1px solid #edebe9; color: #323130; white-space: nowrap; }
-.list-table tr:hover td { background: #f0fff4; cursor: pointer; }
+.list-table tr:hover td { background: #f0f6ff; cursor: pointer; }
 
 /* ── Badges ── */
 .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
@@ -179,7 +179,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 /* ── Approval block ── */
 .appr-block { background: #f9f9f9; border: 1px solid #edebe9; border-radius: 6px; padding: 14px; margin-bottom: 10px; }
 .appr-title { font-size: 12px; font-weight: 600; color: #323130; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-.appr-title::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #107c10; }
+.appr-title::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0078d4; }
 .appr-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: end; }
 .btn-approve { background: #107c10; color: #fff; border: none; border-radius: 4px; padding: 4px 14px; font-size: .8rem; font-weight: 600; cursor: pointer; font-family: inherit; }
 .btn-approve:hover { background: #0e6b0e; }
@@ -193,7 +193,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .ssc-alert-icon { font-size: 2rem; margin-bottom: 10px; }
 .ssc-alert-title { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
 .ssc-alert-sub { font-size: .8rem; color: #64748b; margin-bottom: 20px; word-break: break-all; }
-.ssc-alert-btn { background: #107c10; color: #fff; border: none; border-radius: 8px; padding: 9px 32px; font-size: .88rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+.ssc-alert-btn { background: #0078d4; color: #fff; border: none; border-radius: 8px; padding: 9px 32px; font-size: .88rem; font-weight: 600; cursor: pointer; font-family: inherit; }
 
 #confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 1100; align-items: center; justify-content: center; }
 #confirm-modal.show { display: flex; }
@@ -203,15 +203,15 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 #loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); align-items: center; justify-content: center; z-index: 999; }
 #loading.show { display: flex; }
 .loading-box { background: #fff; border-radius: 6px; padding: 28px 40px; font-size: 15px; color: #323130; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.spinner { width: 32px; height: 32px; border: 3px solid #edebe9; border-top: 3px solid #107c10; border-radius: 50%; animation: spin .8s linear infinite; }
+.spinner { width: 32px; height: 32px; border: 3px solid #edebe9; border-top: 3px solid #0078d4; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Dynamic loading ── */
 #dyn-loading { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.92); z-index: 500; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
 #dyn-loading.show { display: flex; }
-.dyn-spinner { width: 40px; height: 40px; border: 3px solid #edebe9; border-top: 3px solid #107c10; border-radius: 50%; animation: spin .8s linear infinite; }
+.dyn-spinner { width: 40px; height: 40px; border: 3px solid #edebe9; border-top: 3px solid #0078d4; border-radius: 50%; animation: spin .8s linear infinite; }
 .dyn-dots { display: inline-flex; gap: 3px; }
-.dyn-dots span { width: 4px; height: 4px; background: #107c10; border-radius: 50%; animation: dotPulse 1.2s infinite; }
+.dyn-dots span { width: 4px; height: 4px; background: #0078d4; border-radius: 50%; animation: dotPulse 1.2s infinite; }
 .dyn-dots span:nth-child(2) { animation-delay: .2s; }
 .dyn-dots span:nth-child(3) { animation-delay: .4s; }
 @keyframes dotPulse { 0%,80%,100%{ transform:scale(0);opacity:.3 } 40%{ transform:scale(1);opacity:1 } }
@@ -219,7 +219,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 /* ── Pagination ── */
 .pg-wrap { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
 .pg-btn { border-radius: 4px; padding: 4px 9px; font-size: 13px; cursor: pointer; border: 1px solid #d2d0ce; background: #fff; color: #323130; font-family: inherit; }
-.pg-btn.active { background: #107c10; color: #fff; border-color: #107c10; font-weight: 700; }
+.pg-btn.active { background: #0078d4; color: #fff; border-color: #0078d4; font-weight: 700; }
 .pg-btn:disabled { border-color: #edebe9; background: #f3f2f1; color: #a19f9d; cursor: default; }
 
 @media (max-width: 640px) {
@@ -458,7 +458,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
         </select>
         <input type="text" id="admin-filter-search" oninput="loadAdminList()" placeholder="신청자 / 제목 검색...">
         <span id="admin-count" style="font-size:13px;color:#605e5c;margin-left:auto"></span>
-        <button onclick="exportAdminExcel()" style="padding:6px 14px;background:#107c10;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit">📊 Excel</button>
+        <button onclick="exportAdminExcel()" style="padding:6px 14px;background:#0078d4;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit">📊 Excel</button>
       </div>
       <table class="list-table">
         <thead><tr>
@@ -522,7 +522,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
     <div style="font-size:2rem;margin-bottom:12px">🔒</div>
     <div style="font-size:1rem;font-weight:700;color:#0f2744;margin-bottom:8px">접근 권한 없음</div>
     <div style="font-size:.83rem;color:#64748b;line-height:1.7;margin-bottom:20px">관리자 전용 메뉴입니다.</div>
-    <button onclick="document.getElementById('no-auth-modal').style.display='none'" style="background:#107c10;color:#fff;border:none;border-radius:8px;padding:10px 32px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit">확인</button>
+    <button onclick="document.getElementById('no-auth-modal').style.display='none'" style="background:#0078d4;color:#fff;border:none;border-radius:8px;padding:10px 32px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit">확인</button>
   </div>
 </div>
 
@@ -685,9 +685,9 @@ async function loadSystemConfig() {
       const el = document.getElementById('sc-contact-emails');
       if (el) {
         const lines = [];
-        if (glEmail) lines.push('BU Admin(GL 관련) 문의 Email: <a href="mailto:'+glEmail+'" style="color:#0078d4;text-decoration:none">'+glEmail+'</a>');
-        if (arEmail) lines.push('BU Admin(AR 관련) 문의 Email: <a href="mailto:'+arEmail+'" style="color:#0078d4;text-decoration:none">'+arEmail+'</a>');
-        if (apEmail) lines.push('BU Admin(AP 관련) 문의 Email: <a href="mailto:'+apEmail+'" style="color:#0078d4;text-decoration:none">'+apEmail+'</a>');
+        if (glEmail) lines.push('BU Admin(GL 관련) 문의 Email: <a href="mailto:'+glEmail+'" style="color:#323130;text-decoration:none">'+glEmail+'</a>');
+        if (arEmail) lines.push('BU Admin(AR 관련) 문의 Email: <a href="mailto:'+arEmail+'" style="color:#323130;text-decoration:none">'+arEmail+'</a>');
+        if (apEmail) lines.push('BU Admin(AP 관련) 문의 Email: <a href="mailto:'+apEmail+'" style="color:#323130;text-decoration:none">'+apEmail+'</a>');
         if (lines.length) {
           el.style.cssText = 'font-size:11px;color:#605e5c;margin-top:3px;line-height:1.55';
           el.innerHTML = lines.join('<br>');
@@ -1080,7 +1080,7 @@ async function showDetail(reqId) {
     const f = r.fields;
     if(f.Detail) f.Detail = stripHtml(f.Detail);
 
-    const sec = t=>'<div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:#107c10;padding:6px 10px;background:#f0fff4;border-left:3px solid #107c10;border-radius:3px">'+t+'</div>';
+    const sec = t=>'<div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:#0078d4;padding:6px 10px;background:#f0f6ff;border-left:3px solid #0078d4;border-radius:3px">'+t+'</div>';
     const row = (l,v,full)=>{
       const val=(v===undefined||v===null||v==='') ? '-' : v;
       return full
@@ -1154,7 +1154,7 @@ function showConfirm(apprId, action, reqId){
   cmtEl.value=''; cmtEl.placeholder=isReject?'반려 사유 입력 (필수)':'의견 입력 (선택사항)';
   const okBtn=document.getElementById('confirm-ok-btn');
   okBtn.textContent=isReject?'반려':'승인';
-  okBtn.style.background=isReject?'#a4262c':'#107c10';
+  okBtn.style.background=isReject?'#a4262c':'#0078d4';
   okBtn.style.color='#fff';
   okBtn.onclick=doApproval;
   document.getElementById('confirm-modal').classList.add('show');
