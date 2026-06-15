@@ -32,7 +32,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 #login-err { color: #e53e3e; font-size: .78rem; margin-top: 10px; display: none; }
 
 /* ── App shell ── */
-#app { display: none; max-width: 980px; margin: 0 auto; padding: 24px 16px 60px; }
+#app { display: none; max-width: 1200px; margin: 0 auto; padding: 24px 16px 60px; }
 .header { background: #fff; border-radius: 6px; padding: 16px 24px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #edebe9; }
 .header .title { font-size: 18px; font-weight: 600; color: #323130; }
 .header-right { font-size: 13px; color: #605e5c; display: flex; align-items: center; gap: 12px; }
@@ -418,7 +418,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
     <div class="card" style="padding:0;overflow:hidden">
       <table class="list-table">
         <thead><tr>
-          <th>번호</th><th>유형</th><th>요청구분</th><th>제목</th><th>우선순위</th><th>상태</th><th>등록일</th>
+          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>우선순위</th><th>상태</th><th>등록일</th>
           <th style="width:80px;text-align:center">Withdraw</th>
         </tr></thead>
         <tbody id="list-body">
@@ -435,7 +435,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
     <div class="card" style="padding:0;overflow:hidden">
       <table class="list-table">
         <thead><tr>
-          <th>티켓번호</th><th>신청자</th><th>유형</th><th>요청구분</th><th>우선순위</th><th>상태</th><th>등록일</th><th>처리</th>
+          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>PKF담당자</th><th>우선순위</th><th>상태</th><th>등록일</th><th>처리</th>
         </tr></thead>
         <tbody id="appr-body">
           <tr><td colspan="8" style="text-align:center;padding:32px;color:#605e5c">결재 대기 항목이 없습니다.</td></tr>
@@ -462,7 +462,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       </div>
       <table class="list-table">
         <thead><tr>
-          <th>번호</th><th>신청자</th><th>유형</th><th>요청구분</th><th>제목</th><th>우선순위</th><th>상태</th><th>등록일</th>
+          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>PKF담당자</th><th>우선순위</th><th>상태</th><th>등록일</th>
         </tr></thead>
         <tbody id="admin-body">
           <tr><td colspan="8" style="text-align:center;padding:32px;color:#605e5c">
@@ -954,15 +954,16 @@ async function loadMyList() {
       const f = item.fields, total = mine.length;
       return '<tr onclick="showDetail('+item.id+')" style="cursor:pointer">'+
         '<td>'+(total-idx)+'</td>'+
+        '<td style="font-size:12px;color:#605e5c;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'-')+'</td>'+
+        '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.TicketTitle||'-')+'</td>'+
         '<td><span class="badge badge-'+f.TicketType+'">'+f.TicketType+'</span></td>'+
-        '<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis">'+(f.SubType||'-')+'</td>'+
-        '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">'+(f.TicketTitle||f.Title||'-')+'</td>'+
+        '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
         '<td><span class="badge badge-'+(f.Status||'대기')+'">'+(f.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(f.RequestDate)+'</td>'+
         '<td style="text-align:center">'+wdBtn(item.id, f.Status)+'</td>'+
       '</tr>';
-    }, '등록된 티켓이 없습니다.', 8);
+    }, '등록된 티켓이 없습니다.', 9);
   } catch(e) { dynLoad(false); document.getElementById('list-body').innerHTML='<tr><td colspan="8" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
 }
 
@@ -984,11 +985,14 @@ async function loadApprovalQueue() {
     pgSet('appr', mine, (item,idx)=>{
       const f=item.fields, rf=reqMap[String(f.RequestID)]||{};
       const total=mine.length;
+      const pkfNames=(rf.PKFAssignees||'').split(';').map(p=>p.trim().split('<')[0].trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+f.RequestID+')" style="cursor:pointer">'+
         '<td style="color:#0078d4">'+(total-idx)+'</td>'+
-        '<td>'+(rf.RequesterEmail||'')+'</td>'+
+        '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'')+'</td>'+
+        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.TicketTitle||'-')+'</td>'+
         '<td><span class="badge badge-'+(rf.TicketType||'')+'">'+( rf.TicketType||'-')+'</span></td>'+
-        '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">'+(rf.SubType||'-')+'</td>'+
+        '<td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.SubType||'-')+'</td>'+
+        '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(pkfNames||'-')+'</td>'+
         '<td><span class="badge badge-'+(rf.Priority||'')+'">'+(rf.Priority||'-')+'</span></td>'+
         '<td><span class="badge badge-'+(rf.Status||'대기')+'">'+(rf.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(rf.RequestDate)+'</td>'+
@@ -997,7 +1001,7 @@ async function loadApprovalQueue() {
           '<button class="btn-reject"  onclick="showConfirm('+item.id+',\'반려\','+f.RequestID+')">반려</button>'+
         '</td>'+
       '</tr>';
-    }, '결재 대기 항목이 없습니다.', 8);
+    }, '결재 대기 항목이 없습니다.', 10);
     // Badge
     const b=document.getElementById('appr-badge');
     b.textContent=mine.length; b.style.display=mine.length?'inline':'none';
@@ -1034,17 +1038,19 @@ async function loadAdminList() {
     dynLoad(false);
     pgSet('admin',items,(item,idx)=>{
       const f=item.fields, total=items.length;
+      const apkf=(f.PKFAssignees||'').split(';').map(p=>p.trim().split('<')[0].trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+item.id+')" style="cursor:pointer">'+
         '<td>'+(total-idx)+'</td>'+
-        '<td>'+(f.RequesterEmail||'')+'</td>'+
+        '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'')+'</td>'+
+        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.TicketTitle||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.TicketType||'')+'">'+( f.TicketType||'-')+'</span></td>'+
-        '<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">'+(f.SubType||'-')+'</td>'+
-        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">'+(f.TicketTitle||f.Title||'-')+'</td>'+
+        '<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
+        '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(apkf||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
         '<td><span class="badge badge-'+(f.Status||'대기')+'">'+(f.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(f.RequestDate)+'</td>'+
       '</tr>';
-    },'조회 결과가 없습니다.',8);
+    },'조회 결과가 없습니다.',9);
   } catch(e){ dynLoad(false); document.getElementById('admin-body').innerHTML='<tr><td colspan="8" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
 }
 
