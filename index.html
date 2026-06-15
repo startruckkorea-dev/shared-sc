@@ -626,6 +626,7 @@ async function boot(account) {
   try {
     const me = await api('/me?$select=mail,userPrincipalName');
     user.email = (me.mail || me.userPrincipalName || account.username).toLowerCase();
+    user.username = (account.username||'').toLowerCase();
   } catch(e) { user.email = (account.username||'').toLowerCase(); }
   document.getElementById('user-name').textContent = (account.name||account.username) + ' (' + user.email + ')';
 
@@ -1014,7 +1015,7 @@ async function loadApprovalQueue() {
     const reqMap={};
     reqData.value.forEach(r=>{ reqMap[r.id]=r.fields; });
     const mine = apprData.value
-      .filter(i=>(i.fields.ApproverEmail||'').toLowerCase()===user.email && i.fields.Status==='대기')
+      .filter(i=>{ const ae=(i.fields.ApproverEmail||'').toLowerCase(); return (ae===user.email||ae===(user.username||'').toLowerCase()) && i.fields.Status==='대기'; })
       .sort((a,b)=>b.fields.RequestID-a.fields.RequestID);
     dynLoad(false);
     pgSet('appr', mine, (item,idx)=>{
@@ -1047,7 +1048,7 @@ async function refreshApprBadge() {
   if (!siteId||!user) return;
   try {
     const data = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
-    const cnt = data.value.filter(i=>(i.fields.ApproverEmail||'').toLowerCase()===user.email&&i.fields.Status==='대기').length;
+    const cnt = data.value.filter(i=>{ const ae=(i.fields.ApproverEmail||'').toLowerCase(); return (ae===user.email||ae===(user.username||'').toLowerCase())&&i.fields.Status==='대기'; }).length;
     const b=document.getElementById('appr-badge');
     b.textContent=cnt; b.style.display=cnt?'inline':'none';
   } catch(e){}
@@ -1161,7 +1162,7 @@ async function showDetail(reqId) {
               '</div><span style="color:'+(sc[af.Status]||'#323130')+';font-weight:700;font-size:12px;white-space:nowrap;margin-left:8px">'+(af.Status||'')+'</span></div>';
           }).join('')+'</div>';
 
-        const myPending = apprList.find(a=>(a.fields.ApproverEmail||'').toLowerCase()===user.email&&a.fields.Status==='대기');
+        const myPending = apprList.find(a=>{ const ae=(a.fields.ApproverEmail||'').toLowerCase(); return (ae===user.email||ae===(user.username||'').toLowerCase())&&a.fields.Status==='대기'; });
         if(myPending){
           apprHtml+='<div style="display:flex;gap:10px;margin-top:14px">'+
             '<button onclick="showConfirm('+myPending.id+',\'승인\','+reqId+')" class="btn-approve" style="flex:1;border-radius:6px;padding:10px;font-size:.9rem;font-weight:700">✅ 승인</button>'+
