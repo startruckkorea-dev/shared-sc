@@ -614,6 +614,21 @@ async function boot(account) {
     const site = await api('/sites/' + SITE_PATH);
     siteId = site.id;
     await loadSystemConfig();
+
+    // 접근 권한 체크 (SHARED-SC 허용 이메일)
+    const cfg = _sysConfig;
+    const allowedKeys = [
+      'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
+      'SHARED-SC_ADMIN_1','SHARED-SC_ADMIN_2','SHARED-SC_ADMIN_3','SHARED-SC_ADMIN_4','SHARED-SC_ADMIN_5',
+      'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3'
+    ];
+    const allowed = allowedKeys.map(k=>cfg&&cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
+    if (allowed.length && !allowed.includes(user.email)) {
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('preopen-screen').style.display = 'flex';
+      return;
+    }
+
     await loadListIds();
     await refreshApprBadge();
     setInterval(refreshApprBadge, 60000);
