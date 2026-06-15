@@ -541,13 +541,13 @@ const SITE_PATH  = 'startruckkorea.sharepoint.com:/sites/STK-DB:';
 const GRAPH      = 'https://graph.microsoft.com/v1.0';
 const SCOPES     = ['User.Read','Sites.ReadWrite.All','Files.ReadWrite.All'];
 
-// SSC SharePoint List — ID로 접근 (이름 인코딩 문제 방지)
+// SSC SharePoint List GUID (설정 페이지 URL에서 확인)
 const SSC_REQUESTS  = 'SSC_Requests';
 const SSC_APPROVALS = 'SSC_Approvals';
-let SSC_REQ_ID  = null; // 런타임에 로드
-let SSC_APR_ID  = null; // 런타임에 로드
-function sscReq() { return SSC_REQ_ID || SSC_REQUESTS; }
-function sscApr() { return SSC_APR_ID || SSC_APPROVALS; }
+let SSC_REQ_ID  = 'bb912dff-ba54-4abd-871a-b3d4c3c8620d'; // SSC_Requests GUID
+let SSC_APR_ID  = '9f56047d-3ebb-4462-897e-16362d067521'; // SSC_Approvals GUID
+function sscReq() { return SSC_REQ_ID; }
+function sscApr() { return SSC_APR_ID; }
 
 let msal = null, user = null, siteId = null;
 let _sysConfig = null, _configLoaded = false;
@@ -623,29 +623,9 @@ async function boot(account) {
 
 // ══ System Config (system_config_final.xlsx) ══
 async function loadListIds() {
-  // SharePoint REST API로 목록 ID 직접 조회 (Graph API 우회)
-  try {
-    const t = await getToken();
-    const baseUrl = 'https://startruckkorea.sharepoint.com/sites/STK-DB/_api/web/lists';
-    
-    const fetchSP = (listName) => fetch(
-      baseUrl + "/GetByTitle('" + listName + "')?$select=Id,Title,EntityTypeName",
-      { headers: { Authorization: 'Bearer ' + t, Accept: 'application/json;odata=nometadata' } }
-    ).then(r => r.json());
-
-    try {
-      const r = await fetchSP('SSC_Requests');
-      if (r.Id) { SSC_REQ_ID = r.Id; console.log('[SSC] Requests ID:', r.Id); }
-      else console.warn('[SSC] SSC_Requests REST 응답:', r);
-    } catch(e) { console.warn('[SSC] SSC_Requests REST 실패:', e.message); }
-
-    try {
-      const r = await fetchSP('SSC_Approvals');
-      if (r.Id) { SSC_APR_ID = r.Id; console.log('[SSC] Approvals ID:', r.Id); }
-      else console.warn('[SSC] SSC_Approvals REST 응답:', r);
-    } catch(e) { console.warn('[SSC] SSC_Approvals REST 실패:', e.message); }
-
-  } catch(e) { console.warn('[SSC] loadListIds 실패:', e.message); }
+  // GUID 하드코딩으로 대체 (별도 조회 불필요)
+  console.log('[SSC] Requests GUID:', SSC_REQ_ID);
+  console.log('[SSC] Approvals GUID:', SSC_APR_ID);
 }
 
 async function loadSystemConfig() {
