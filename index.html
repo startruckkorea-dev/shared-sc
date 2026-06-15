@@ -1110,7 +1110,10 @@ async function showDetail(reqId) {
       row('Doc Date', fmtDateOnly(f.DocDate)) +
       row('Reverse Date', fmtDateOnly(f.ReverseDate)||'-') +
       row('상세 내용', f.Detail, true) +
-      row('PKF 담당자', (f.PKFAssignees||'').split(';').map(p=>{const m=p.trim().match(/^(.+?)<(.+?)>$/);return m?m[1].trim()+' ('+m[2].trim()+')':p.trim();}).filter(Boolean).join('\n')||'-');
+      (()=>{
+      const pkfHtml=(f.PKFAssignees||'').split(';').map(p=>{const m=p.trim().match(/^(.+?)<(.+?)>$/);return m?'<div>'+m[1].trim()+' <span style="color:#605e5c;font-size:12px">('+m[2].trim()+')</span></div>':('<div>'+p.trim()+'</div>');}).filter(Boolean).join('');
+      html+=row('PKF 담당자', pkfHtml||'-');
+      })();
 
     // Approvals
     let apprHtml = '';
