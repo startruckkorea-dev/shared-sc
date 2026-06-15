@@ -1101,7 +1101,7 @@ async function showDetail(reqId) {
       row('Doc Date', fmtDateOnly(f.DocDate)) +
       row('Reverse Date', fmtDateOnly(f.ReverseDate)||'-') +
       row('상세 내용', f.Detail, true) +
-      row('PKF 담당자', (f.PKFAssignees||'').split(';').map(p=>{const m=p.trim().match(/^(.+?)<(.+?)>$/);return m?'<div>'+m[1].trim()+' <span style="color:#605e5c;font-size:12px">('+m[2].trim()+')</span></div>':p.trim();}).filter(Boolean).join('')||'-');
+      row('PKF 담당자', (f.PKFAssignees||'').split(';').map(p=>{const m=p.trim().match(/^(.+?)<(.+?)>$/);return m?m[1].trim()+' ('+m[2].trim()+')':p.trim();}).filter(Boolean).join('\n')||'-', true);
 
     // Approvals
     let apprHtml = '';
