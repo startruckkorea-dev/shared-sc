@@ -849,7 +849,7 @@ async function submitTicket() {
 
     // Step 2: Title 업데이트
     await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items/'+reqId,'PATCH',{
-      fields:{ Title: 'SSC-'+dateStr+'_ID-'+reqId }
+      fields:{ Title: 'SSC-'+selectedType+'-'+dateStr+'_ID-'+reqId }
     });
 
     // Step 3: 나머지 필드 개별 PATCH (Rich Text / multi-line)
@@ -896,7 +896,7 @@ async function submitTicket() {
     ];
     for (const a of approvers) {
       await api('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items','POST',{fields:{
-        Title:         'SSC-'+dateStr+'_ID-'+reqId+'-'+a.order,
+        Title:         'SSC-'+selectedType+'-'+dateStr+'_ID-'+reqId+'-'+a.order,
         RequestID:     parseInt(reqId),
         ApproverEmail: a.email,
         ApproverName:  a.name,
@@ -906,7 +906,7 @@ async function submitTicket() {
       }});
     }
 
-    showAlert('티켓이 접수되었습니다.', 'SSC-'+dateStr+'_ID-'+reqId, '✅');
+    showAlert('티켓이 접수되었습니다.', 'SSC-'+selectedType+'-'+dateStr+'_ID-'+reqId, '✅');
     resetForm();
     switchTab('list');
   } catch(e) { showAlert('오류가 발생했습니다.', e.message, '⚠️'); }
