@@ -779,11 +779,19 @@ function selectPriority(val) {
   document.querySelector('.priority-opt[data-val="'+val+'"]').classList.add('selected');
 }
 function toggleAssignee(card, email, name) {
-  const cb = card.querySelector('input[type=checkbox]');
-  cb.checked = !cb.checked;
-  card.classList.toggle('selected', cb.checked);
-  if (cb.checked) { if(!selectedPKF.find(p=>p.email===email)) selectedPKF.push({email,name}); }
-  else selectedPKF = selectedPKF.filter(p=>p.email!==email);
+  // 단일 선택 (라디오 방식)
+  const isSelected = card.classList.contains('selected');
+  document.querySelectorAll('.assignee-card').forEach(c=>{
+    c.classList.remove('selected');
+    c.querySelector('input').checked = false;
+  });
+  if (!isSelected) {
+    card.classList.add('selected');
+    card.querySelector('input').checked = true;
+    selectedPKF = [{email, name}];
+  } else {
+    selectedPKF = [];
+  }
 }
 
 // ══ Files ══
@@ -809,7 +817,7 @@ function resetForm() {
   document.querySelectorAll('.subtype-wrap').forEach(w=>w.classList.remove('visible'));
   document.querySelectorAll('.subtype-item').forEach(i=>i.classList.remove('selected')); selectedSubtype='';
   document.querySelectorAll('.priority-opt').forEach(o=>o.classList.remove('selected'));
-  document.querySelectorAll('.assignee-card').forEach(c=>{c.classList.remove('selected');c.querySelector('input').checked=false;});
+  document.querySelectorAll('.assignee-card').forEach(c=>{c.classList.remove('selected');const inp=c.querySelector('input');if(inp)inp.checked=false;});
   ['ssc-title','ssc-detail','ssc-posting-date','ssc-doc-date','ssc-reverse-date'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -830,7 +838,7 @@ async function submitTicket() {
   if (!postDate)         return alert('Posting Date를 입력해주세요.');
   if (!docDate)          return alert('Doc Date를 입력해주세요.');
   if (!detail)           return alert('상세 내용을 입력해주세요.');
-  if (!selectedPKF.length) return alert('PKF 담당자를 1명 이상 선택해주세요.');
+  if (!selectedPKF.length) return alert('PKF 담당자를 1명 선택해주세요.');
 
   loading(true);
   try {
