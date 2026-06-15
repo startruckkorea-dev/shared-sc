@@ -394,18 +394,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
         <div class="appr-title">2차 담당자 (PKF 서현회계법인) <span style="color:#a4262c;font-size:11px">*</span></div>
         <div style="font-size:11.5px;color:#605e5c;margin-bottom:10px">담당자를 선택하면 티켓 접수 알림이 자동 발송됩니다.</div>
         <div class="assignee-grid" id="pkf-grid">
-          <div class="assignee-card" onclick="toggleAssignee(this,'hyunuk.jung@pkf.kr','정현욱')">
-            <input type="checkbox" data-email="hyunuk.jung@pkf.kr" data-name="정현욱">
-            <div><div class="a-name">정현욱</div><div class="a-email">hyunuk.jung@pkf.kr</div></div>
-          </div>
-          <div class="assignee-card" onclick="toggleAssignee(this,'jiwoo.shin@pkf.kr','신지우')">
-            <input type="checkbox" data-email="jiwoo.shin@pkf.kr" data-name="신지우">
-            <div><div class="a-name">신지우</div><div class="a-email">jiwoo.shin@pkf.kr</div></div>
-          </div>
-          <div class="assignee-card" onclick="toggleAssignee(this,'hyojeong.choi@pkf.kr','최효정')">
-            <input type="checkbox" data-email="hyojeong.choi@pkf.kr" data-name="최효정">
-            <div><div class="a-name">최효정</div><div class="a-email">hyojeong.choi@pkf.kr</div></div>
-          </div>
+          <div style="font-size:12px;color:#a19f9d;padding:8px;grid-column:1/-1">불러오는 중...</div>
         </div>
       </div>
 
@@ -667,17 +656,7 @@ async function loadSystemConfig() {
             </div>`
           ).join('');
         } else {
-          // config 없을 시 하드코딩 fallback
-          pkfGrid.innerHTML = `
-            <div class="assignee-card" onclick="toggleAssignee(this,'hyunuk.jung@pkf.kr','Hyunuk Jung')">
-              <input type="checkbox"><div><div class="a-name">Hyunuk Jung</div><div class="a-email">hyunuk.jung@pkf.kr</div></div>
-            </div>
-            <div class="assignee-card" onclick="toggleAssignee(this,'jiwoo.shin@pkf.kr','Jiwoo Shin')">
-              <input type="checkbox"><div><div class="a-name">Jiwoo Shin</div><div class="a-email">jiwoo.shin@pkf.kr</div></div>
-            </div>
-            <div class="assignee-card" onclick="toggleAssignee(this,'hyojeong.choi@pkf.kr','Hyojeong Choi')">
-              <input type="checkbox"><div><div class="a-name">Hyojeong Choi</div><div class="a-email">hyojeong.choi@pkf.kr</div></div>
-            </div>`;
+          pkfGrid.innerHTML = '<div style="font-size:12px;color:#a19f9d;padding:8px;grid-column:1/-1">config에서 담당자 정보를 찾을 수 없습니다.</div>';
         }
       }
 
