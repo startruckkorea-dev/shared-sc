@@ -1095,9 +1095,9 @@ async function showDetail(reqId) {
 
     html += sec('티켓 상세') +
       row('제목', f.TicketTitle||f.Title) +
-      row('Posting Date', f.PostingDate) +
-      row('Doc Date', f.DocDate) +
-      row('Reverse Date', f.ReverseDate||'-') +
+      row('Posting Date', fmtDateOnly(f.PostingDate)) +
+      row('Doc Date', fmtDateOnly(f.DocDate)) +
+      row('Reverse Date', fmtDateOnly(f.ReverseDate)||'-') +
       row('상세 내용', f.Detail, true) +
       row('PKF 담당자', f.PKFAssignees);
 
@@ -1257,6 +1257,10 @@ function fmtDate(iso){
   const d=new Date(new Date(iso).getTime()+9*3600*1000);
   return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')+
     ' '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+}
+function fmtDateOnly(iso){
+  if(!iso) return '-';
+  return (iso||'').substring(0,10);
 }
 function loading(v){ document.getElementById('loading').classList.toggle('show',v); }
 function dynLoad(v, msg){
