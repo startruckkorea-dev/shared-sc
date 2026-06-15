@@ -623,31 +623,28 @@ async function boot(account) {
 
 // ══ System Config (system_config_final.xlsx) ══
 async function loadListIds() {
-  // hidden 포함 전체 목록에서 SSC 목록 직접 접근 시도
+  // SharePoint REST API로 목록 ID 직접 조회 (Graph API 우회)
   try {
-    // 방법1: 이름으로 직접 접근
+    const t = await getToken();
+    const baseUrl = 'https://startruckkorea.sharepoint.com/sites/STK-DB/_api/web/lists';
+    
+    const fetchSP = (listName) => fetch(
+      baseUrl + "/GetByTitle('" + listName + "')?$select=Id,Title,EntityTypeName",
+      { headers: { Authorization: 'Bearer ' + t, Accept: 'application/json;odata=nometadata' } }
+    ).then(r => r.json());
+
     try {
-      const r = await api('/sites/'+siteId+'/lists/SSC_Requests?$select=id,name,displayName');
-      SSC_REQ_ID = r.id; console.log('[SSC] Requests ID(직접):', r.id);
-    } catch(e) {
-      // 방법2: hidden 포함 전체 검색
-      const data = await api('/sites/'+siteId+'/lists?$top=500&$select=id,name,displayName&showHidden=true');
-      const lists = data.value || [];
-      console.log('[SSC] 전체 목록:', lists.map(l=>l.name));
-      const req = lists.find(l => l.name==='SSC_Requests' || l.displayName==='SSC_Requests');
-      if (req) { SSC_REQ_ID = req.id; console.log('[SSC] Requests ID:', req.id); }
-      else console.warn('[SSC] SSC_Requests 찾기 실패');
-    }
+      const r = await fetchSP('SSC_Requests');
+      if (r.Id) { SSC_REQ_ID = r.Id; console.log('[SSC] Requests ID:', r.Id); }
+      else console.warn('[SSC] SSC_Requests REST 응답:', r);
+    } catch(e) { console.warn('[SSC] SSC_Requests REST 실패:', e.message); }
+
     try {
-      const r = await api('/sites/'+siteId+'/lists/SSC_Approvals?$select=id,name,displayName');
-      SSC_APR_ID = r.id; console.log('[SSC] Approvals ID(직접):', r.id);
-    } catch(e) {
-      const data = await api('/sites/'+siteId+'/lists?$top=500&$select=id,name,displayName&showHidden=true');
-      const lists = data.value || [];
-      const apr = lists.find(l => l.name==='SSC_Approvals' || l.displayName==='SSC_Approvals');
-      if (apr) { SSC_APR_ID = apr.id; console.log('[SSC] Approvals ID:', apr.id); }
-      else console.warn('[SSC] SSC_Approvals 찾기 실패');
-    }
+      const r = await fetchSP('SSC_Approvals');
+      if (r.Id) { SSC_APR_ID = r.Id; console.log('[SSC] Approvals ID:', r.Id); }
+      else console.warn('[SSC] SSC_Approvals REST 응답:', r);
+    } catch(e) { console.warn('[SSC] SSC_Approvals REST 실패:', e.message); }
+
   } catch(e) { console.warn('[SSC] loadListIds 실패:', e.message); }
 }
 
