@@ -541,9 +541,13 @@ const SITE_PATH  = 'startruckkorea.sharepoint.com:/sites/STK-DB:';
 const GRAPH      = 'https://graph.microsoft.com/v1.0';
 const SCOPES     = ['User.Read','Sites.ReadWrite.All','Files.ReadWrite.All'];
 
-// SSC SharePoint List 이름 (Jimmy가 생성 후 맞게 수정)
+// SSC SharePoint List — ID로 접근 (이름 인코딩 문제 방지)
 const SSC_REQUESTS  = 'SSC_Requests';
 const SSC_APPROVALS = 'SSC_Approvals';
+let SSC_REQ_ID  = null; // 런타임에 로드
+let SSC_APR_ID  = null; // 런타임에 로드
+function sscReq() { return SSC_REQ_ID || SSC_REQUESTS; }
+function sscApr() { return SSC_APR_ID || SSC_APPROVALS; }
 
 let msal = null, user = null, siteId = null;
 let _sysConfig = null, _configLoaded = false;
@@ -610,6 +614,7 @@ async function boot(account) {
     const site = await api('/sites/' + SITE_PATH);
     siteId = site.id;
     await loadSystemConfig();
+    await loadListIds();
     await loadEmployees();
     await refreshApprBadge();
     setInterval(refreshApprBadge, 60000);
@@ -617,6 +622,20 @@ async function boot(account) {
 }
 
 // ══ System Config (system_config_final.xlsx) ══
+async function loadListIds() {
+  // 목록 전체에서 displayName으로 SSC 목록 ID 찾기
+  try {
+    const data = await api('/sites/'+siteId+'/lists?$top=200&$select=id,name,displayName');
+    const lists = data.value || [];
+    const req = lists.find(l => l.name === 'SSC_Requests' || l.displayName === 'SSC_Requests');
+    const apr = lists.find(l => l.name === 'SSC_Approvals' || l.displayName === 'SSC_Approvals');
+    if (req) { SSC_REQ_ID = req.id; console.log('[SSC] Requests ID:', req.id); }
+    else console.warn('[SSC] SSC_Requests 목록을 찾을 수 없음');
+    if (apr) { SSC_APR_ID = apr.id; console.log('[SSC] Approvals ID:', apr.id); }
+    else console.warn('[SSC] SSC_Approvals 목록을 찾을 수 없음');
+  } catch(e) { console.warn('[SSC] 목록 ID 로드 실패:', e.message); }
+}
+
 async function loadSystemConfig() {
   try {
     const drives = await api('/sites/'+siteId+'/drives');
@@ -844,11 +863,11 @@ async function submitTicket() {
       RequesterEmail: user.email,
       RequestDate:    now,
     };
-    const item = await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items','POST',{fields:coreFields});
+    const item = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items','POST',{fields:coreFields});
     const reqId = item.id;
 
     // Step 2: Title 업데이트
-    await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items/'+reqId,'PATCH',{
+    await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{
       fields:{ Title: 'SSC-'+selectedType+'-'+dateStr+'_ID-'+reqId }
     });
 
@@ -863,7 +882,7 @@ async function submitTicket() {
     };
     for (const [key,val] of Object.entries(extraFields)) {
       if (val == null) continue;
-      try { await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items/'+reqId,'PATCH',{fields:{[key]:val}}); }
+      try { await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{[key]:val}}); }
       catch(e){ console.warn('Field skip:',key,e.message); }
     }
 
@@ -884,7 +903,7 @@ async function submitTicket() {
             if(res.ok){const u=await res.json();links.push(f.name+'||'+drv.id+'||'+u.id);}
           } catch(e){ console.error('File upload fail:',f.name,e); }
         }
-        if(links.length) await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items/'+reqId,'PATCH',{fields:{AttachedFiles:links.join(';')}});
+        if(links.length) await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{AttachedFiles:links.join(';')}});
       } catch(e){ console.error('Drive error:',e); }
     }
 
@@ -895,7 +914,7 @@ async function submitTicket() {
       ...selectedPKF.map((p,i) => ({ name: p.name, email: p.email, role: 'PKF담당자', order: i+2, status: '대기(잠김)' }))
     ];
     for (const a of approvers) {
-      await api('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items','POST',{fields:{
+      await api('/sites/'+siteId+'/lists/'+sscApr()+'/items','POST',{fields:{
         Title:         'SSC-'+selectedType+'-'+dateStr+'_ID-'+reqId+'-'+a.order,
         RequestID:     parseInt(reqId),
         ApproverEmail: a.email,
@@ -934,7 +953,7 @@ async function loadMyList() {
   if (!siteId) return;
   dynLoad(true,'티켓 목록 불러오는 중');
   try {
-    const data = await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items?$expand=fields&$top=500');
+    const data = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
     const mine = data.value
       .filter(i=>(i.fields.RequesterEmail||'').toLowerCase()===user.email)
       .sort((a,b)=>new Date(b.fields.RequestDate)-new Date(a.fields.RequestDate));
@@ -961,8 +980,8 @@ async function loadApprovalQueue() {
   dynLoad(true,'결재 정보 확인 중');
   try {
     const [apprData, reqData] = await Promise.all([
-      apiAll('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items?$expand=fields'),
-      api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items?$expand=fields&$top=500')
+      apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields'),
+      api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500')
     ]);
     const reqMap={};
     reqData.value.forEach(r=>{ reqMap[r.id]=r.fields; });
@@ -996,7 +1015,7 @@ async function loadApprovalQueue() {
 async function refreshApprBadge() {
   if (!siteId||!user) return;
   try {
-    const data = await apiAll('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items?$expand=fields');
+    const data = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
     const cnt = data.value.filter(i=>(i.fields.ApproverEmail||'').toLowerCase()===user.email&&i.fields.Status==='대기').length;
     const b=document.getElementById('appr-badge');
     b.textContent=cnt; b.style.display=cnt?'inline':'none';
@@ -1012,7 +1031,7 @@ async function loadAdminList() {
   const filterSearch=((document.getElementById('admin-filter-search')||{value:''}).value||'').toLowerCase();
   try {
     if (!_adminCache.length) {
-      const d=await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items?$expand=fields&$top=500');
+      const d=await api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
       _adminCache=d.value.sort((a,b)=>new Date(b.fields.RequestDate)-new Date(a.fields.RequestDate));
     }
     let items=_adminCache;
@@ -1040,7 +1059,7 @@ async function loadAdminList() {
 async function exportAdminExcel(){
   loading(true);
   try {
-    const items=_adminCache.length?_adminCache:(await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items?$expand=fields&$top=500')).value;
+    const items=_adminCache.length?_adminCache:(await api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500')).value;
     const headers=['번호','신청자','유형','요청구분','제목','우선순위','상태','신청일'];
     const rows=[headers,...items.map((i,idx)=>{const f=i.fields;return[items.length-idx,f.RequesterEmail||'',f.TicketType||'',f.SubType||'',f.TicketTitle||f.Title||'',f.Priority||'',f.Status||'',fmtDate(f.RequestDate)];})];
     const ws=XLSX.utils.aoa_to_sheet(rows);
@@ -1059,7 +1078,7 @@ function stripHtml(v){
 async function showDetail(reqId) {
   loading(true);
   try {
-    const r = await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items/'+reqId+'?$expand=fields');
+    const r = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId+'?$expand=fields');
     const f = r.fields;
     if(f.Detail) f.Detail = stripHtml(f.Detail);
 
@@ -1093,7 +1112,7 @@ async function showDetail(reqId) {
     // Approvals
     let apprHtml = '';
     try {
-      const apprData = await apiAll('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items?$expand=fields');
+      const apprData = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
       const apprList = apprData.value.filter(i=>i.fields.RequestID==reqId).sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
       if(apprList.length){
         const sc={'대기':'#7d5700','승인':'#107c10','반려':'#a4262c','대기(잠김)':'#605e5c','승인완료':'#107c10'};
@@ -1153,20 +1172,20 @@ async function doApproval(){
   loading(true);
   try {
     // 이중 처리 방지
-    const cur=await api('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items/'+apprId+'?$expand=fields');
+    const cur=await api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+apprId+'?$expand=fields');
     if(cur.fields.Status!=='대기'){ showAlert('이미 처리된 항목입니다.','','⚠️'); return; }
 
-    await api('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items/'+apprId,'PATCH',{
+    await api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+apprId,'PATCH',{
       fields:{ Status:action, ApprovalDate:new Date().toISOString(), Comment:comment||'' }
     });
     if(action==='반려'){
-      await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items/'+reqId,'PATCH',{fields:{Status:'반려'}});
+      await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{Status:'반려'}});
     } else {
-      const all = await apiAll('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items?$expand=fields');
+      const all = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
       const next = all.value.filter(i=>Number(i.fields.RequestID)===Number(reqId)&&i.fields.Status==='대기(잠김)')
                              .sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
-      if(next.length) await api('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items/'+next[0].id,'PATCH',{fields:{Status:'대기'}});
-      else await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items/'+reqId,'PATCH',{fields:{Status:'승인완료'}});
+      if(next.length) await api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+next[0].id,'PATCH',{fields:{Status:'대기'}});
+      else await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{Status:'승인완료'}});
     }
     showAlert(action+' 처리되었습니다.','',action==='반려'?'❌':'✅');
     await loadApprovalQueue();
@@ -1181,13 +1200,13 @@ async function withdrawRequest(e, reqId) {
   if(!confirm('신청을 철회하시겠습니까?\n철회 후에는 되돌릴 수 없습니다.')) return;
   loading(true);
   try {
-    const aprData=await apiAll('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items?$expand=fields');
+    const aprData=await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
     const myAprs=aprData.value.filter(i=>Number(i.fields.RequestID)===Number(reqId));
     const first=myAprs.sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder)[0];
     const firstSt=(first?.fields?.Status||'').trim();
     if(firstSt!=='대기'){ showAlert('철회 불가','이미 결재가 진행된 신청은 철회할 수 없습니다.','⚠️'); return; }
-    await Promise.all(myAprs.map(i=>api('/sites/'+siteId+'/lists/'+SSC_APPROVALS+'/items/'+i.id,'PATCH',{fields:{Status:'철회(잠김)'}})));
-    await api('/sites/'+siteId+'/lists/'+SSC_REQUESTS+'/items/'+reqId,'PATCH',{fields:{Status:'철회'}});
+    await Promise.all(myAprs.map(i=>api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+i.id,'PATCH',{fields:{Status:'철회(잠김)'}})));
+    await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{Status:'철회'}});
     showAlert('철회 완료','신청이 철회되었습니다.','✅');
     loadMyList();
   } catch(e){ alert('오류: '+e.message); }
