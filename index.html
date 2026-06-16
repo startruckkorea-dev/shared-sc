@@ -1144,7 +1144,7 @@ function stripHtml(v){
 async function showDetail(reqId) {
   loading(true);
   try {
-    const r = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId+'?$expand=fields($select=Title,TicketType,SubType,Priority,Status,RequestDate,RequesterEmail,TicketTitle,PostingDate,DocDate,ReverseDate,Detail,PKFAssignees,PKFChangeLog,AttachedFiles)');
+    const r = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId+'?$expand=fields');
     const f = r.fields;
     if(f.Detail) f.Detail = stripHtml(f.Detail);
     // PKFAssignees는 파싱용이므로 stripHtml 제외
