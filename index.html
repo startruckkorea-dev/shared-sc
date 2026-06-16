@@ -758,7 +758,16 @@ async function loadSystemConfig() {
 
 function isAdmin() {
   if (!user) return false;
-  return ADMIN_EMAILS.map(e=>e.toLowerCase()).includes((user.email||'').toLowerCase());
+  if (ADMIN_EMAILS.map(e=>e.toLowerCase()).includes((user.email||'').toLowerCase())) return true;
+  // SHARED-SC_ADMIN_N 도 관리자로 인정
+  const cfg = _sysConfig;
+  if (!cfg) return false;
+  let n=1;
+  while(cfg['SHARED-SC_ADMIN_'+n]) {
+    if((cfg['SHARED-SC_ADMIN_'+n].email||'').toLowerCase()===(user.email||'').toLowerCase()) return true;
+    n++;
+  }
+  return false;
 }
 
 // ══ Employee data ══
