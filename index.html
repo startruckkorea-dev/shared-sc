@@ -1279,7 +1279,8 @@ async function showDetail(reqId) {
       row('상세 내용', f.Detail, true) +
       (()=>{
         const pkfNames = stripHtml(f.PKFAssignees||'').split(';').map(p=>{const parts=p.trim().split('||');return parts[0]?(parts[0].trim()+(parts[1]?' ('+parts[1].trim()+')':'')):p.trim();}).filter(Boolean).join('\n')||'-';
-        const canChange = isAdmin() || (f.PKFAssignees||'').toLowerCase().includes((user.email||'').toLowerCase());
+        const _editableStatus = ['대기','처리중'];
+        const canChange = _editableStatus.includes(f.Status) && (isAdmin() || (f.PKFAssignees||'').toLowerCase().includes((user.email||'').toLowerCase()));
         const changeBtn = canChange ? '<button onclick="showPKFChangeModal('+reqId+')" style="margin-left:8px;padding:2px 10px;font-size:11px;background:#a4262c;color:#fff;border:none;border-radius:4px;cursor:pointer;vertical-align:middle">✏️ 변경</button>' : '';
         return '<div style="padding:7px 0;border-bottom:.5px solid #edebe9"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">PKF 담당자 '+changeBtn+'</div><div style="white-space:pre-wrap;font-size:13px">'+pkfNames+'</div></div>';
       })()
