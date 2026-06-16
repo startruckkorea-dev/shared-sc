@@ -1354,13 +1354,30 @@ async function savePKFChange(reqId) {
       reason:    reason
     });
 
-    // SharePoint 업데이트
+    // 1) SSC_Requests PKFAssignees + PKFChangeLog 업데이트
     await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId, 'PATCH', {
       fields: {
         PKFAssignees: newPKFStr,
         PKFChangeLog: JSON.stringify(logs)
       }
     });
+
+    // 2) SSC_Approvals에서 해당 티켓의 PKF담당자 행 찾아서 업데이트
+    try {
+      const apprData = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
+      const pkfRows = apprData.value.filter(i =>
+        String(i.fields.RequestID) === String(reqId) &&
+        (i.fields.ApproverRole||'').includes('PKF')
+      );
+      for (const row of pkfRows) {
+        await api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+row.id, 'PATCH', {
+          fields: {
+            ApproverEmail: selected.value,
+            ApproverName:  selected.dataset.name
+          }
+        });
+      }
+    } catch(apprErr) { console.warn('Approvals 업데이트 실패:', apprErr.message); }
 
     closePKFChangeModal();
     alert('✅ PKF 담당자가 변경되었습니다.');
