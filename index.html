@@ -1172,6 +1172,31 @@ async function showDetail(reqId) {
       row('상세 내용', f.Detail, true) +
       row('PKF 담당자', stripHtml(f.PKFAssignees||'').split(';').map(p=>{const parts=p.trim().split('||');return parts[0]?(parts[0].trim()+(parts[1]?' ('+parts[1].trim()+')':'')):p.trim();}).filter(Boolean).join('\n')||'-', true);
 
+    // 첨부파일
+    let filesHtml = '<div style="font-size:13px;color:#605e5c">첨부파일 없음</div>';
+    if (f.AttachedFiles) {
+      const fileEntries = f.AttachedFiles
+        .replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/<[^>]*>/g,'')
+        .split(';').filter(e => e.trim());
+      if (fileEntries.length) {
+        filesHtml = fileEntries.map(entry => {
+          const name = entry.split('|')[0].trim();
+          if (!name) return '';
+          const newFmt = entry.split('||');
+          if (newFmt.length >= 3) {
+            const driveId = newFmt[1].trim();
+            const itemId  = newFmt[2].trim();
+            return '<div style="padding:4px 0;font-size:13px">📎 <a href="#" class="file-dl-link" data-drive="' + encodeURIComponent(driveId) + '" data-id="' + encodeURIComponent(itemId) + '" data-name="' + encodeURIComponent(name) + '" onclick="openFile(this);return false;" style="color:#0078d4;cursor:pointer">' + name + '</a></div>';
+          }
+          const parts = entry.split('|');
+          const url = parts[1] ? parts[1].trim() : '';
+          if (!url) return '<div style="padding:4px 0;font-size:13px;color:#605e5c">📎 ' + name + '</div>';
+          return '<div style="padding:4px 0;font-size:13px">📎 <a href="' + url + '" target="_blank" style="color:#0078d4">' + name + '</a></div>';
+        }).filter(Boolean).join('');
+      }
+    }
+    html += sec('첨부파일') + filesHtml;
+
     // Approvals
     let apprHtml = '';
     try {
@@ -1207,6 +1232,21 @@ async function showDetail(reqId) {
   finally{ loading(false); }
 }
 function closeModal(){ document.getElementById('detail-modal').classList.remove('show'); }
+
+async function openFile(link) {
+  const itemId  = decodeURIComponent(link.getAttribute('data-id')   || '');
+  const driveId = decodeURIComponent(link.getAttribute('data-drive') || '');
+  const name    = decodeURIComponent(link.getAttribute('data-name')  || '');
+  if (!itemId || !driveId) { alert('파일 정보가 없습니다.'); return; }
+  try {
+    loading(true);
+    const data = await api('/drives/' + driveId + '/items/' + itemId + '?select=id,name,%40microsoft.graph.downloadUrl,webUrl');
+    const dlUrl = data['@microsoft.graph.downloadUrl'] || data.webUrl;
+    if (dlUrl) window.open(dlUrl, '_blank');
+    else throw new Error('다운로드 URL 없음');
+  } catch(err) { alert('파일 열기 오류: ' + err.message); }
+  finally { loading(false); }
+}
 
 // ══ Confirm / Approval ══
 let _pendingAppr = null;
