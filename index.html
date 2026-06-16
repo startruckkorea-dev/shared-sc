@@ -1182,7 +1182,7 @@ async function showDetail(reqId) {
         let lastReasonHtml = '';
         if (f.PKFChangeLog) {
           try {
-            const _raw1 = f.PKFChangeLog.replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'");
+            const _raw1 = stripHtml(f.PKFChangeLog).replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&#39;/g,"'");
             const _logs = JSON.parse(_raw1);
             if (_logs && _logs.length) {
               const _last = _logs[_logs.length-1];
@@ -1197,7 +1197,7 @@ async function showDetail(reqId) {
     let pkfLogHtml = '';
     if (f.PKFChangeLog) {
       try {
-        const _raw2 = f.PKFChangeLog.replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'");
+        const _raw2 = stripHtml(f.PKFChangeLog).replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&#39;/g,"'");
         const logs = JSON.parse(_raw2);
         if (logs && logs.length) {
           pkfLogHtml = '<div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:#a4262c;padding:6px 10px;background:#fff4f4;border-left:3px solid #a4262c;border-radius:3px">🔄 PKF 담당자 변경 이력</div>' +
@@ -1347,7 +1347,7 @@ async function savePKFChange(reqId) {
 
     // 변경 이력 append
     let logs = [];
-    if (cf.PKFChangeLog) { try { const _raw3=cf.PKFChangeLog.replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'"); logs = JSON.parse(_raw3); } catch(e){} }
+    if (cf.PKFChangeLog) { try { const _raw3=stripHtml(cf.PKFChangeLog).replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&#39;/g,"'"); logs = JSON.parse(_raw3); } catch(e){} }
     logs.push({
       changedAt: new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}),
       changedBy: user.email,
