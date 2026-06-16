@@ -643,7 +643,7 @@ async function boot(account) {
     const allowedKeys = [
       'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
       'SHARED-SC_ADMIN_1','SHARED-SC_ADMIN_2','SHARED-SC_ADMIN_3','SHARED-SC_ADMIN_4','SHARED-SC_ADMIN_5',
-      'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3'
+      'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3','SHARED-SC_2nd_4','SHARED-SC_2nd_5','SHARED-SC_2nd_6'
     ];
     const allowed = allowedKeys.map(k=>cfg&&cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
     if (allowed.length && !allowed.includes(user.email)) {
@@ -666,7 +666,7 @@ function checkSscAccess() {
   const allowedKeys = [
     'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
     'SHARED-SC_ADMIN_1','SHARED-SC_ADMIN_2','SHARED-SC_ADMIN_3','SHARED-SC_ADMIN_4','SHARED-SC_ADMIN_5',
-    'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3'
+    'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3','SHARED-SC_2nd_4','SHARED-SC_2nd_5','SHARED-SC_2nd_6'
   ];
   const allowed = allowedKeys.map(k=>cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
   if (allowed.length > 0 && !allowed.includes(ue)) {
