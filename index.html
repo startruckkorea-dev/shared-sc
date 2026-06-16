@@ -395,7 +395,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       <div class="section-title">4. 첨부파일</div>
       <div class="file-area" onclick="document.getElementById('ssc-file-input').click()">
         <input type="file" id="ssc-file-input" multiple onchange="onFileSelect(event)">
-        <div style="font-size:13px;color:#605e5c">📎 클릭하여 파일 첨부 (최대 10MB)</div>
+        <div style="font-size:13px;color:#605e5c">📎 클릭하여 파일 첨부 (최대 20MB)</div>
       </div>
       <div class="file-list" id="ssc-file-list"></div>
 
@@ -833,7 +833,7 @@ function onFileSelect(e) {
     if(!attachedFiles.find(x=>x.name===f.name)) attachedFiles.push(f);
   });
   const totalMB = attachedFiles.reduce((s,f)=>s+f.size,0)/1024/1024;
-  if(totalMB>10){ alert('첨부파일 총 용량이 '+totalMB.toFixed(1)+'MB입니다. 10MB 이하로 첨부해주세요.'); attachedFiles=[]; }
+  if(totalMB>20){ alert('첨부파일 총 용량이 '+totalMB.toFixed(1)+'MB입니다. 20MB 이하로 첨부해주세요.'); attachedFiles=[]; }
   renderFiles(); document.getElementById('ssc-file-input').value='';
 }
 function removeFile(i){ attachedFiles.splice(i,1); renderFiles(); }
