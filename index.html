@@ -1182,7 +1182,8 @@ async function showDetail(reqId) {
         let lastReasonHtml = '';
         if (f.PKFChangeLog) {
           try {
-            const _logs = JSON.parse(f.PKFChangeLog);
+            const _raw1 = f.PKFChangeLog.replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'");
+            const _logs = JSON.parse(_raw1);
             if (_logs && _logs.length) {
               const _last = _logs[_logs.length-1];
               lastReasonHtml = '<div style="margin-top:5px;padding:5px 8px;background:#fff4f4;border-left:3px solid #a4262c;border-radius:3px;font-size:11.5px;color:#a4262c">💬 최근 변경 사유: '+_last.reason+'<span style="float:right;color:#a19f9d;font-size:10.5px">'+_last.changedAt+'</span></div>';
@@ -1196,7 +1197,8 @@ async function showDetail(reqId) {
     let pkfLogHtml = '';
     if (f.PKFChangeLog) {
       try {
-        const logs = JSON.parse(f.PKFChangeLog);
+        const _raw2 = f.PKFChangeLog.replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'");
+        const logs = JSON.parse(_raw2);
         if (logs && logs.length) {
           pkfLogHtml = '<div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:#a4262c;padding:6px 10px;background:#fff4f4;border-left:3px solid #a4262c;border-radius:3px">🔄 PKF 담당자 변경 이력</div>' +
             '<div style="background:#fff4f4;border-radius:6px;border:1px solid #f8d0d0;overflow:hidden">' +
@@ -1345,7 +1347,7 @@ async function savePKFChange(reqId) {
 
     // 변경 이력 append
     let logs = [];
-    if (cf.PKFChangeLog) { try { logs = JSON.parse(cf.PKFChangeLog); } catch(e){} }
+    if (cf.PKFChangeLog) { try { const _raw3=cf.PKFChangeLog.replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'"); logs = JSON.parse(_raw3); } catch(e){} }
     logs.push({
       changedAt: new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}),
       changedBy: user.email,
