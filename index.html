@@ -640,10 +640,12 @@ async function boot(account) {
 
     // 접근 권한 체크
     const cfg = _sysConfig;
+    // 2nd_ 담당자 키를 동적으로 수집 (Excel에서 _N 추가/삭제 시 자동 반영)
+    const _2ndKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_2nd_'+_n]){ _2ndKeys.push('SHARED-SC_2nd_'+_n); _n++; } }
     const allowedKeys = [
       'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
       'SHARED-SC_ADMIN_1','SHARED-SC_ADMIN_2','SHARED-SC_ADMIN_3','SHARED-SC_ADMIN_4','SHARED-SC_ADMIN_5',
-      'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3','SHARED-SC_2nd_4','SHARED-SC_2nd_5','SHARED-SC_2nd_6'
+      ..._2ndKeys
     ];
     const allowed = allowedKeys.map(k=>cfg&&cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
     if (allowed.length && !allowed.includes(user.email)) {
@@ -663,10 +665,12 @@ function checkSscAccess() {
   const cfg = _sysConfig;
   const ue = user ? user.email : '';
   if (!cfg || !ue) return; // config 없으면 통과
+  // 2nd_ 담당자 키를 동적으로 수집 (Excel에서 _N 추가/삭제 시 자동 반영)
+  const _2ndKeys = []; { let _n=1; while(cfg['SHARED-SC_2nd_'+_n]){ _2ndKeys.push('SHARED-SC_2nd_'+_n); _n++; } }
   const allowedKeys = [
     'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
     'SHARED-SC_ADMIN_1','SHARED-SC_ADMIN_2','SHARED-SC_ADMIN_3','SHARED-SC_ADMIN_4','SHARED-SC_ADMIN_5',
-    'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3','SHARED-SC_2nd_4','SHARED-SC_2nd_5','SHARED-SC_2nd_6'
+    ..._2ndKeys
   ];
   const allowed = allowedKeys.map(k=>cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
   if (allowed.length > 0 && !allowed.includes(ue)) {
