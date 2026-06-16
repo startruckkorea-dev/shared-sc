@@ -1182,7 +1182,7 @@ async function showDetail(reqId) {
         let lastReasonHtml = '';
         if (f.PKFChangeLog) {
           try {
-            const _raw1 = stripHtml(f.PKFChangeLog).replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&#39;/g,"'");
+            const _raw1 = decodeSpHtml(f.PKFChangeLog);
             const _logs = JSON.parse(_raw1);
             if (_logs && _logs.length) {
               const _last = _logs[_logs.length-1];
@@ -1197,7 +1197,7 @@ async function showDetail(reqId) {
     let pkfLogHtml = '';
     if (f.PKFChangeLog) {
       try {
-        const _raw2 = stripHtml(f.PKFChangeLog).replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&#39;/g,"'");
+        const _raw2 = decodeSpHtml(f.PKFChangeLog);
         const logs = JSON.parse(_raw2);
         if (logs && logs.length) {
           pkfLogHtml = '<div style="margin:16px 0 8px;font-size:13px;font-weight:700;color:#a4262c;padding:6px 10px;background:#fff4f4;border-left:3px solid #a4262c;border-radius:3px">🔄 PKF 담당자 변경 이력</div>' +
@@ -1277,6 +1277,17 @@ async function showDetail(reqId) {
   } catch(e){ alert('조회 오류: '+e.message); }
   finally{ loading(false); }
 }
+function decodeSpHtml(v) {
+  if (!v) return '';
+  // 1) HTML 태그 제거 (SharePoint <div class="ExternalClass..."> 래핑)
+  let s = v.replace(/<[^>]*>/g, '');
+  // 2) 숫자형 엔티티 &#NNN; 및 &#xHH; 디코딩
+  s = s.replace(/&#(\d+);/g, (_,n) => String.fromCharCode(Number(n)));
+  s = s.replace(/&#x([0-9a-fA-F]+);/g, (_,h) => String.fromCharCode(parseInt(h,16)));
+  // 3) 명명형 엔티티
+  s = s.replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#39;/g,"'").replace(/&apos;/g,"'");
+  return s.trim();
+}
 function closeModal(){ document.getElementById('detail-modal').classList.remove('show'); }
 
 // ══ PKF 담당자 변경 ══
@@ -1347,7 +1358,7 @@ async function savePKFChange(reqId) {
 
     // 변경 이력 append
     let logs = [];
-    if (cf.PKFChangeLog) { try { const _raw3=stripHtml(cf.PKFChangeLog).replace(/&quot;/g,'"').replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&#39;/g,"'"); logs = JSON.parse(_raw3); } catch(e){} }
+    if (cf.PKFChangeLog) { try { const _raw3 = decodeSpHtml(cf.PKFChangeLog); logs = JSON.parse(_raw3); } catch(e){} }
     logs.push({
       changedAt: new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}),
       changedBy: user.email,
