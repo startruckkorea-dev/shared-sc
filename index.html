@@ -154,6 +154,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .badge-반려 { background: #fde7e9; color: #a4262c; }
 .badge-철회 { background: #f1f5f9; color: #64748b; }
 .badge-승인완료 { background: #dff6dd; color: #107c10; }
+.badge-승인 { background: #dff6dd; color: #107c10; }
 .badge-GL { background: #e1f0ff; color: #0078d4; }
 .badge-AR { background: #f0fff4; color: #107c10; }
 .badge-AP { background: #fff8e1; color: #7d5700; }
@@ -467,10 +468,10 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       </div>
       <table class="list-table">
         <thead><tr>
-          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>PKF담당자</th><th>우선순위</th><th>내 처리</th><th>상태</th><th>처리일</th>
+          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>PKF담당자</th><th>우선순위</th><th>상태</th><th>처리일</th>
         </tr></thead>
         <tbody id="history-body">
-          <tr><td colspan="10" style="text-align:center;padding:32px;color:#605e5c">결재 이력이 없습니다.</td></tr>
+          <tr><td colspan="9" style="text-align:center;padding:32px;color:#605e5c">결재 이력이 없습니다.</td></tr>
         </tbody>
       </table>
       <div id="history-pagination" style="padding:10px 16px"></div>
@@ -1215,14 +1216,11 @@ async function loadHistoryList() {
     const el = document.getElementById('history-total');
     if (el) el.textContent = '총 ' + total + '건';
 
-    const scColor = { '승인':'#107c10', '반려':'#a4262c', '승인완료':'#107c10', '대기':'#7d5700' };
-
     pgSet('history', filtered, (item, idx) => {
       const af = item.fields;
       const rf = reqMap[String(af.RequestID)] || {};
       const pkf = stripHtml(rf.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       const myStatus = af.Status || '-';
-      const myColor  = scColor[myStatus] || '#323130';
       return '<tr onclick="showDetail('+af.RequestID+')" style="cursor:pointer">' +
         '<td style="color:#0078d4">'+(total-idx)+'</td>' +
         '<td style="font-size:12px;color:#605e5c;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'-')+'</td>' +
@@ -1231,11 +1229,10 @@ async function loadHistoryList() {
         '<td style="font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.SubType||'-')+'</td>' +
         '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(pkf||'-')+'</td>' +
         '<td><span class="badge badge-'+(rf.Priority||'')+'">'+( rf.Priority||'-')+'</span></td>' +
-        '<td><span style="font-weight:700;color:'+myColor+'">'+myStatus+'</span></td>' +
-        '<td><span style="font-weight:600;color:'+(scColor[rf.Status]||'#323130')+'">'+( rf.Status||'-')+'</span></td>' +
+        '<td><span class="badge badge-'+(rf.Status||'대기')+'">'+( rf.Status||'-')+'</span></td>' +
         '<td style="font-size:12px;color:#605e5c">'+(af.ApprovalDate ? fmtDate(af.ApprovalDate) : '-')+'</td>' +
         '</tr>';
-    }, '처리한 결재 이력이 없습니다.', 15);
+    }, '처리한 결재 이력이 없습니다.', 9);
   } catch(e) { dynLoad(false); console.error(e); }
 }
 
