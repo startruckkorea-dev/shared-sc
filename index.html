@@ -604,7 +604,7 @@ let selectedType = '', selectedSubtype = '', selectedPriority = '';
 let selectedPKF = []; // [{email, name}]
 let _adminCache = [];
 
-let ADMIN_EMAILS = ['jimmy.lee@hyosung.com','stk_it@hyosung.com','stk_s_sharepoint@hyosung.com'];
+let ADMIN_EMAILS = ['', '', ''];
 let IT_MANAGER   = { name: 'IT Support', email: 'stk_s_sharepoint@hyosung.com' };
 
 // ══ MSAL ══
@@ -735,7 +735,7 @@ async function loadSystemConfig() {
     // Admin list override
     const admins = [];
     let n=1;
-    while(cfg['IT_ADMIN_'+n]){ admins.push(cfg['IT_ADMIN_'+n].email); n++; }
+    while(cfg['SHARED-SC_ADMIN_'+n]){ admins.push(cfg['SHARED-SC_ADMIN_'+n].email); n++; }
     if(admins.length) ADMIN_EMAILS.splice(0,ADMIN_EMAILS.length,...admins);
   } catch(e) { console.warn('[Config] xlsx load failed:', e.message); _configLoaded=true; }
 
