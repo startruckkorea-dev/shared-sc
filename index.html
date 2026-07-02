@@ -1293,7 +1293,15 @@ async function showDetail(reqId) {
             '<div style="background:#fff4f4;border-radius:6px;border:1px solid #f8d0d0;overflow:hidden">' +
             logs.map((log,i)=>'<div style="padding:9px 12px;border-bottom:1px solid #f8d0d0;'+(i===logs.length-1?'border-bottom:none':'')+'">' +
               '<div style="display:flex;justify-content:space-between;align-items:center">' +
-              '<span style="font-size:11px;color:#a19f9d">'+log.changedAt+'</span>' +
+              '<span style="font-size:11px;color:#a19f9d">'+(()=>{
+                const s=log.changedAt||'';
+                // 이미 YYYY-MM-DD HH:MM 형식이면 그대로
+                if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(s)) return s;
+                // ko-KR 형식(2026. 06. 16. 오후 06:01) → 변환
+                const m=s.match(/(\d{4})\.\s*(\d{2})\.\s*(\d{2})\.\s*(오전|오후)\s*(\d{1,2}):(\d{2})/);
+                if(m){let h=parseInt(m[5]);if(m[4]==='오후'&&h<12)h+=12;if(m[4]==='오전'&&h===12)h=0;return `${m[1]}-${m[2]}-${m[3]} ${String(h).padStart(2,'0')}:${m[6]}`;}
+                return s;
+              })()+'</span>' +
               '</div>' +
               '<div style="font-size:12px;color:#323130;margin-top:4px">변경자: <b>'+log.changedBy+'</b></div>' +
               '<div style="font-size:12px;color:#323130;margin-top:2px">이전: <span style="color:#605e5c">'+log.fromPKF+'</span></div>' +
@@ -1448,7 +1456,7 @@ async function savePKFChange(reqId) {
     let logs = [];
     if (cf.PKFChangeLog) { try { const _raw3 = decodeSpHtml(cf.PKFChangeLog); logs = JSON.parse(_raw3); } catch(e){} }
     logs.push({
-      changedAt: new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}),
+      changedAt: (()=>{const d=new Date();const p=n=>String(n).padStart(2,'0');const offset=d.getTimezoneOffset();const kst=new Date(d.getTime()+(offset+540)*60000);return `${kst.getFullYear()}-${p(kst.getMonth()+1)}-${p(kst.getDate())} ${p(kst.getHours())}:${p(kst.getMinutes())}`;})(),
       changedBy: user.email,
       fromPKF:   fromPKF,
       toPKF:     newPKFNames,
