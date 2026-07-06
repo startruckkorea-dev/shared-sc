@@ -612,10 +612,10 @@ let _adminCache = [];
 let ADMIN_EMAILS = ['', '', ''];
 let IT_MANAGER   = { name: 'IT Support', email: 'stk_s_sharepoint@hyosung.com' };
 
-// 게스트 로그인용 내부 UPN(bp.*, @startruck.kr) 여부 — 담당자 지정 목록에서 제외용
+// 게스트 로그인용 내부 UPN(bp.*, @startruck.kr) 및 내부 임직원(@hyosung.com) 여부 — 담당자 지정 목록에서 제외용
 function isGuestUpnEmail(email) {
   const e = (email||'').toLowerCase().trim();
-  return e.startsWith('bp.') || e.endsWith('@startruck.kr');
+  return e.startsWith('bp.') || e.endsWith('@startruck.kr') || e.endsWith('@hyosung.com');
 }
 
 // ══ MSAL ══
