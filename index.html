@@ -612,6 +612,12 @@ let _adminCache = [];
 let ADMIN_EMAILS = ['', '', ''];
 let IT_MANAGER   = { name: 'IT Support', email: 'stk_s_sharepoint@hyosung.com' };
 
+// 게스트 로그인용 내부 UPN(bp.*, @startruck.kr) 여부 — 담당자 지정 목록에서 제외용
+function isGuestUpnEmail(email) {
+  const e = (email||'').toLowerCase().trim();
+  return e.startsWith('bp.') || e.endsWith('@startruck.kr');
+}
+
 // ══ MSAL ══
 async function signIn() {
   try {
@@ -754,7 +760,8 @@ async function loadSystemConfig() {
         const pkfList = [];
         let pn = 1;
         while(cfg['SHARED-SC_2nd_'+pn]) {
-          pkfList.push({ name: cfg['SHARED-SC_2nd_'+pn].name, email: cfg['SHARED-SC_2nd_'+pn].email });
+          const email = cfg['SHARED-SC_2nd_'+pn].email || '';
+          if (!isGuestUpnEmail(email)) pkfList.push({ name: cfg['SHARED-SC_2nd_'+pn].name, email });
           pn++;
         }
         if (pkfList.length) {
@@ -1396,7 +1403,8 @@ function showPKFChangeModal(reqId) {
   const pkfList = [];
   let pn = 1;
   while (cfg && cfg['SHARED-SC_2nd_'+pn]) {
-    pkfList.push({ name: cfg['SHARED-SC_2nd_'+pn].name, email: cfg['SHARED-SC_2nd_'+pn].email });
+    const email = cfg['SHARED-SC_2nd_'+pn].email || '';
+    if (!isGuestUpnEmail(email)) pkfList.push({ name: cfg['SHARED-SC_2nd_'+pn].name, email });
     pn++;
   }
   if (!pkfList.length) { alert('PKF 담당자 목록을 불러올 수 없습니다.'); return; }
