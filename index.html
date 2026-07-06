@@ -690,7 +690,7 @@ async function boot(account) {
     await loadListIds();
     await refreshApprBadge();
     setInterval(refreshApprBadge, 60000);
-  } catch(e) { showAlert('SharePoint 연결 오류', e.message, '⚠️'); }
+  } catch(e) { showAlert('SharePoint 연결 오류', e.message + ' — STK-DB 사이트 접근 권한이 없을 수 있습니다. IT 담당자에게 계정 접근 권한 확인을 요청하세요.', '⚠️'); }
 }
 
 // ══ System Config (system_config_final.xlsx) ══
@@ -1023,7 +1023,7 @@ function switchTab(name) {
 
 // ══ My List ══
 async function loadMyList() {
-  if (!siteId) return;
+  if (!siteId) { document.getElementById('list-body').innerHTML='<tr><td colspan="8" style="color:#a4262c;text-align:center;padding:32px">SharePoint 사이트 접근 권한이 없습니다. IT 담당자에게 문의하세요.</td></tr>'; return; }
   dynLoad(true,'티켓 목록 불러오는 중');
   try {
     const data = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
@@ -1052,7 +1052,7 @@ async function loadMyList() {
 
 // ══ Approval queue ══
 async function loadApprovalQueue() {
-  if (!siteId) return;
+  if (!siteId) { document.getElementById('appr-body').innerHTML='<tr><td colspan="9" style="color:#a4262c;text-align:center;padding:32px">SharePoint 사이트 접근 권한이 없습니다. IT 담당자에게 문의하세요.</td></tr>'; return; }
   dynLoad(true,'결재 정보 확인 중');
   try {
     const [apprData, reqData] = await Promise.all([
@@ -1088,10 +1088,8 @@ async function loadApprovalQueue() {
     // Badge
     const b=document.getElementById('appr-badge');
     b.textContent=mine.length; b.style.display=mine.length?'inline':'none';
-  } catch(e) { dynLoad(false); console.error(e); }
+  } catch(e) { dynLoad(false); document.getElementById('appr-body').innerHTML='<tr><td colspan="9" style="color:#a4262c;text-align:center;padding:32px">'+e.message+'</td></tr>'; }
 }
-
-async function refreshApprBadge() {
   if (!siteId||!user) return;
   try {
     const data = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
@@ -1103,7 +1101,7 @@ async function refreshApprBadge() {
 
 // ══ Admin list ══
 async function loadAdminList() {
-  if (!siteId) return;
+  if (!siteId) { document.getElementById('admin-body').innerHTML='<tr><td colspan="8" style="color:#a4262c;text-align:center;padding:32px">SharePoint 사이트 접근 권한이 없습니다. IT 담당자에게 문의하세요.</td></tr>'; return; }
   dynLoad(true,'티켓 목록 불러오는 중');
   const filterStatus=(document.getElementById('admin-filter-status')||{value:''}).value;
   const filterType=(document.getElementById('admin-filter-type')||{value:''}).value;
@@ -1181,7 +1179,7 @@ async function exportAdminExcel(){
 
 // ══ History List (내가 처리한 결재 이력) ══
 async function loadHistoryList() {
-  if (!siteId) return;
+  if (!siteId) { document.getElementById('history-body').innerHTML='<tr><td colspan="9" style="color:#a4262c;text-align:center;padding:32px">SharePoint 사이트 접근 권한이 없습니다. IT 담당자에게 문의하세요.</td></tr>'; return; }
   dynLoad(true, '결재 이력 불러오는 중');
   try {
     const filterStatus = (document.getElementById('history-filter-status')||{value:''}).value;
@@ -1237,7 +1235,7 @@ async function loadHistoryList() {
         '<td style="font-size:12px;color:#605e5c">'+(af.ApprovalDate ? fmtDate(af.ApprovalDate) : '-')+'</td>' +
         '</tr>';
     }, '처리한 결재 이력이 없습니다.', 9);
-  } catch(e) { dynLoad(false); console.error(e); }
+  } catch(e) { dynLoad(false); document.getElementById('history-body').innerHTML='<tr><td colspan="9" style="color:#a4262c;text-align:center;padding:32px">'+e.message+'</td></tr>'; }
 }
 
 // ══ Show Detail ══
