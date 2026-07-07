@@ -1328,7 +1328,7 @@ async function showDetail(reqId, fromTab) {
     }
     html += pkfLogHtml;
 
-    // ── 결재 의견 제시 (업무 처리자·관리자 입력 가능, 처리함/관리자 탭에서만 노출) ──
+    // ── 업무 처리 의견 (업무 처리자·관리자 입력 가능, 처리함/관리자 탭에서만 노출) ──
     const canSeeComments = (fromTab==='appr' || fromTab==='admin') &&
       (isAdmin() || (f.PKFAssignees||'').toLowerCase().includes((user.email||'').toLowerCase()) || (f.PKFAssignees||'').toLowerCase().includes((user.username||'').toLowerCase()));
     if (canSeeComments) {
@@ -1337,29 +1337,26 @@ async function showDetail(reqId, fromTab) {
       const commentsListHtml = comments.length
         ? comments.map(c=>{
             const isFromAdmin = c.from==='admin';
-            const bg = isFromAdmin ? '#fff4e5' : '#eefaf0';
-            const border = isFromAdmin ? '#f7c948' : '#b7e3c4';
-            const tagBg = isFromAdmin ? '#d97706' : '#15803d';
-            const tagLabel = isFromAdmin ? '👤 관리자' : '🛠️ 처리자(처리함)';
-            return '<div style="background:'+bg+';border:1px solid '+border+';border-radius:6px;padding:8px 12px;margin-bottom:8px">'+
-              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'+
-                '<span style="font-size:10px;font-weight:700;color:#fff;background:'+tagBg+';padding:2px 7px;border-radius:10px">'+tagLabel+'</span>'+
-                '<span style="font-size:11px;color:#a19f9d">'+(c.date||'')+'</span>'+
+            const accent = isFromAdmin ? '#d97706' : '#15803d';
+            const tagLabel = isFromAdmin ? '관리자' : '업무 처리자';
+            return '<div style="border-left:3px solid '+accent+';background:#fafafa;border-radius:0 6px 6px 0;padding:9px 12px;margin-bottom:7px">'+
+              '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;gap:8px">'+
+                '<span style="font-size:12px;font-weight:700;color:'+accent+'">'+tagLabel+'</span>'+
+                '<span style="font-size:11px;color:#a19f9d;white-space:nowrap">'+(c.email||'')+' · '+(c.date||'')+'</span>'+
               '</div>'+
-              '<div style="font-size:12px;color:#605e5c;margin-bottom:3px">작성자: <span style="font-weight:600;color:#0078d4">'+(c.email||'')+'</span></div>'+
-              '<div style="font-size:13px;color:#323130;white-space:pre-wrap;padding-left:8px">'+(c.text||'')+'</div></div>';
+              '<div style="font-size:13px;color:#323130;white-space:pre-wrap;line-height:1.5">'+(c.text||'')+'</div></div>';
           }).join('')
-        : '<div style="font-size:12px;color:#a19f9d;padding:6px 0">등록된 의견이 없습니다.</div>';
+        : '<div style="font-size:12px;color:#a19f9d;padding:10px 0;text-align:center">등록된 의견이 없습니다.</div>';
       const _closedStatuses = ['승인완료','반려','철회'];
       const isClosed = _closedStatuses.includes(f.Status);
-      html += sec('결재 의견 제시') +
-        '<span style="font-size:11px;font-weight:400;color:#a19f9d;margin-left:-4px;display:block;margin-top:-6px;margin-bottom:8px">(업무 처리자, 관리자 입력 가능 · 미결재 건에 한함)</span>' +
-        '<div id="ssc-comments-list" style="margin-bottom:10px;max-height:180px;overflow-y:auto">'+commentsListHtml+'</div>' +
+      html += sec('업무 처리 의견') +
+        '<span style="font-size:11px;font-weight:400;color:#a19f9d;margin-left:-4px;display:block;margin-top:-6px;margin-bottom:10px">업무 처리자·관리자만 입력 가능 · 처리 완료된 건은 입력할 수 없습니다</span>' +
+        '<div id="ssc-comments-list" style="margin-bottom:10px;max-height:200px;overflow-y:auto">'+commentsListHtml+'</div>' +
         (isClosed
-          ? '<div style="font-size:12px;color:#a19f9d;padding:8px 0">이미 처리가 완료된 티켓은 의견을 입력할 수 없습니다.</div>'
-          : '<div style="display:flex;gap:8px;align-items:flex-end">'+
-              '<textarea id="ssc-comment-text" placeholder="의견을 입력해주세요..." rows="2" style="flex:1;border:1px solid #d2d0ce;border-radius:4px;padding:8px 10px;font-size:13px;font-family:inherit;resize:vertical"></textarea>'+
-              '<button onclick="submitSscComment('+reqId+')" style="padding:7px 16px;background:#0078d4;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;white-space:nowrap;height:fit-content">등록</button>'+
+          ? '<div style="font-size:12px;color:#a19f9d;background:#f3f2f1;border-radius:4px;padding:10px 12px;text-align:center">이미 처리가 완료된 티켓은 의견을 입력할 수 없습니다.</div>'
+          : '<div style="display:flex;gap:8px;align-items:flex-end;background:#f9f9f9;border:1px solid #edebe9;border-radius:8px;padding:8px">'+
+              '<textarea id="ssc-comment-text" placeholder="처리 관련 의견을 입력해주세요..." rows="2" style="flex:1;border:1px solid #d2d0ce;border-radius:4px;padding:8px 10px;font-size:13px;font-family:inherit;resize:vertical;background:#fff"></textarea>'+
+              '<button onclick="submitSscComment('+reqId+')" style="padding:8px 18px;background:#0078d4;color:#fff;border:none;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;height:fit-content">등록</button>'+
             '</div>');
     }
 
@@ -1424,7 +1421,7 @@ async function showDetail(reqId, fromTab) {
   finally{ loading(false); }
 }
 
-// ── 결재 의견 제시 등록 (SSC_Requests.AdminComments 필드 사용) ──
+// ── 업무 처리 의견 등록 (SSC_Requests.AdminComments 필드 사용) ──
 async function submitSscComment(reqId) {
   const textEl = document.getElementById('ssc-comment-text');
   const comment = (textEl?.value||'').trim();
