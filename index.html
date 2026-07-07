@@ -150,7 +150,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .badge-대기 { background: #fff4ce; color: #7d5700; }
 .badge-접수됨 { background: #e0e7ff; color: #4338ca; }
-.badge-처리중 { background: #e8f4ff; color: #0078d4; }
+.badge-처리중 { background: #fff4ce; color: #7d5700; }
 .badge-완료 { background: #dff6dd; color: #107c10; }
 .badge-반려 { background: #fde7e9; color: #a4262c; }
 .badge-철회 { background: #f1f5f9; color: #64748b; }
@@ -1271,7 +1271,7 @@ async function showDetail(reqId, fromTab) {
         : '<div class="modal-row"><div class="modal-label">'+l+'</div><div class="modal-value">'+val+'</div></div>';
     };
 
-    const statusColor = f.Status==='승인완료'?'#107c10':f.Status==='반려'?'#a4262c':f.Status==='처리중'?'#0078d4':f.Status==='접수됨'?'#4338ca':'#7d5700';
+    const statusColor = f.Status==='승인완료'?'#107c10':f.Status==='반려'?'#a4262c':f.Status==='접수됨'?'#4338ca':'#7d5700';
 
     let html = sec('기본 정보') +
       row('티켓번호', f.Title||reqId) +
