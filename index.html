@@ -149,6 +149,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 /* ── Badges ── */
 .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
 .badge-대기 { background: #fff4ce; color: #7d5700; }
+.badge-접수됨 { background: #e0e7ff; color: #4338ca; }
 .badge-처리중 { background: #e8f4ff; color: #0078d4; }
 .badge-완료 { background: #dff6dd; color: #107c10; }
 .badge-반려 { background: #fde7e9; color: #a4262c; }
@@ -488,7 +489,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       <div class="filter-bar">
         <select id="admin-filter-status" onchange="loadAdminList()">
           <option value="">전체 상태</option>
-          <option>대기</option><option>처리중</option><option>승인완료</option><option>반려</option>
+          <option>대기</option><option>접수됨</option><option>처리중</option><option>승인완료</option><option>반려</option>
         </select>
         <select id="admin-filter-type" onchange="loadAdminList()">
           <option value="">전체 유형</option>
@@ -1149,7 +1150,12 @@ async function exportAdminExcel(){
     if(filterType) items=items.filter(i=>i.fields.TicketType===filterType);
     if(filterSearch) items=items.filter(i=>(i.fields.RequesterEmail||'').toLowerCase().includes(filterSearch)||(i.fields.TicketTitle||i.fields.Title||'').toLowerCase().includes(filterSearch));
     if(!items.length){loading(false);showAlert('내보낼 데이터가 없습니다.','','⚠️');return;}
-    const headers=['번호','신청자','Title(티켓번호)','유형','요청구분','PKF담당자','우선순위','상태','제목','Posting Date','Doc Date','Reverse Date','등록일'];
+    const headers=['번호','신청자','Title(티켓번호)','유형','요청구분','PKF담당자','우선순위','상태','제목','상세 내용','Posting Date','Doc Date','Reverse Date','등록일','결재 의견'];
+    const fmtComments = raw => {
+      let arr=[]; try{ arr=JSON.parse(raw||'[]'); }catch(e){ return ''; }
+      if(!arr.length) return '';
+      return arr.map(c=>'['+(c.from==='admin'?'관리자':'처리자')+' · '+(c.date||'')+' · '+(c.email||'')+'] '+(c.text||'')).join('\n');
+    };
     const rows=[headers,...items.map((i,idx)=>{
       const f=i.fields;
       const pkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
@@ -1163,15 +1169,19 @@ async function exportAdminExcel(){
         f.Priority||'',
         f.Status||'',
         f.TicketTitle||'',
+        stripHtml(f.Detail||''),
         fmtDateOnly(f.PostingDate),
         fmtDateOnly(f.DocDate),
         fmtDateOnly(f.ReverseDate),
-        fmtDate(f.RequestDate)
+        fmtDate(f.RequestDate),
+        fmtComments(f.AdminComments)
       ];
     })];
     const ws=XLSX.utils.aoa_to_sheet(rows);
-    // 열 너비 설정
-    ws['!cols']=[{wch:6},{wch:28},{wch:28},{wch:6},{wch:25},{wch:22},{wch:10},{wch:10},{wch:30},{wch:12},{wch:12},{wch:12},{wch:16}];
+    // 열 너비 설정 — 상세 내용/결재 의견은 넉넉히 확보해 잘림 없이 다 보이도록
+    ws['!cols']=[{wch:6},{wch:28},{wch:28},{wch:8},{wch:25},{wch:22},{wch:10},{wch:10},{wch:32},{wch:50},{wch:12},{wch:12},{wch:12},{wch:16},{wch:60}];
+    ws['!rows']=rows.map((_,i)=>i===0?{hpx:22}:{hpx:60});
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length-1,c:headers.length-1}})};
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'SSC Tickets');
     XLSX.writeFile(wb,'SSCTicket_Admin_'+new Date().toISOString().slice(0,10)+'.xlsx');
@@ -1261,7 +1271,7 @@ async function showDetail(reqId, fromTab) {
         : '<div class="modal-row"><div class="modal-label">'+l+'</div><div class="modal-value">'+val+'</div></div>';
     };
 
-    const statusColor = f.Status==='승인완료'?'#107c10':f.Status==='반려'?'#a4262c':f.Status==='처리중'?'#0078d4':'#7d5700';
+    const statusColor = f.Status==='승인완료'?'#107c10':f.Status==='반려'?'#a4262c':f.Status==='처리중'?'#0078d4':f.Status==='접수됨'?'#4338ca':'#7d5700';
 
     let html = sec('기본 정보') +
       row('티켓번호', f.Title||reqId) +
@@ -1325,10 +1335,20 @@ async function showDetail(reqId, fromTab) {
       let comments = [];
       try { comments = JSON.parse(f.AdminComments||'[]'); } catch(e){ comments=[]; }
       const commentsListHtml = comments.length
-        ? comments.map(c=>'<div style="background:#f0f6ff;border:1px solid #c7e0f4;border-radius:6px;padding:8px 12px;margin-bottom:8px">'+
-            '<div style="font-size:11px;color:#a19f9d;margin-bottom:3px">'+(c.date||'')+'</div>'+
-            '<div style="font-size:12px;color:#605e5c;margin-bottom:3px">작성자: <span style="font-weight:600;color:#0078d4">'+(c.email||'')+'</span></div>'+
-            '<div style="font-size:13px;color:#323130;white-space:pre-wrap;padding-left:8px">'+(c.text||'')+'</div></div>').join('')
+        ? comments.map(c=>{
+            const isFromAdmin = c.from==='admin';
+            const bg = isFromAdmin ? '#fff4e5' : '#eefaf0';
+            const border = isFromAdmin ? '#f7c948' : '#b7e3c4';
+            const tagBg = isFromAdmin ? '#d97706' : '#15803d';
+            const tagLabel = isFromAdmin ? '👤 관리자' : '🛠️ 처리자(처리함)';
+            return '<div style="background:'+bg+';border:1px solid '+border+';border-radius:6px;padding:8px 12px;margin-bottom:8px">'+
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'+
+                '<span style="font-size:10px;font-weight:700;color:#fff;background:'+tagBg+';padding:2px 7px;border-radius:10px">'+tagLabel+'</span>'+
+                '<span style="font-size:11px;color:#a19f9d">'+(c.date||'')+'</span>'+
+              '</div>'+
+              '<div style="font-size:12px;color:#605e5c;margin-bottom:3px">작성자: <span style="font-weight:600;color:#0078d4">'+(c.email||'')+'</span></div>'+
+              '<div style="font-size:13px;color:#323130;white-space:pre-wrap;padding-left:8px">'+(c.text||'')+'</div></div>';
+          }).join('')
         : '<div style="font-size:12px;color:#a19f9d;padding:6px 0">등록된 의견이 없습니다.</div>';
       const _closedStatuses = ['승인완료','반려','철회'];
       const isClosed = _closedStatuses.includes(f.Status);
@@ -1410,6 +1430,7 @@ async function submitSscComment(reqId) {
   const comment = (textEl?.value||'').trim();
   if(!comment) { alert('의견을 입력해주세요.'); return; }
   const btn = document.querySelector('#modal-content button[onclick*="submitSscComment"]');
+  const fromTab = window._curDetailTab; // 'appr' 처리함 · 'admin' 관리자
   try {
     if(btn){btn.disabled=true;btn.textContent='저장 중...';}
     const check = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId+'?$expand=fields');
@@ -1424,9 +1445,13 @@ async function submitSscComment(reqId) {
     const now = new Date(new Date().getTime()+9*3600*1000);
     const p = n=>String(n).padStart(2,'0');
     const dateStr = `${now.getUTCFullYear()}-${p(now.getUTCMonth()+1)}-${p(now.getUTCDate())} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}`;
-    existing.push({ email: user?.email||user?.username||'', date: dateStr, text: comment });
-    await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{AdminComments: JSON.stringify(existing)}});
+    existing.push({ email: user?.email||user?.username||'', date: dateStr, text: comment, from: fromTab });
+    const patchFields = { AdminComments: JSON.stringify(existing) };
+    // 처리함(업무 처리자)에서 의견을 남기면 접수 상태로 전환 — 관리자 탭에서 남긴 의견은 상태를 바꾸지 않음
+    if(fromTab==='appr' && cf.Status==='대기') patchFields.Status = '접수됨';
+    await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:patchFields});
     await showDetail(reqId, window._curDetailTab);
+    if(fromTab==='appr') loadApprovalQueue();
   } catch(e) { alert('의견 저장 실패: '+e.message); }
   finally { if(btn){btn.disabled=false;btn.textContent='등록';} }
 }
@@ -1637,7 +1662,7 @@ async function withdrawRequest(e, reqId) {
 }
 function wdBtn(reqId, status){
   const st=(status&&status.Value?status.Value:status||'').trim();
-  if(st!=='대기') return '';
+  if(st!=='대기' && st!=='접수됨') return '';
   return '<button onclick="withdrawRequest(event,'+reqId+')" style="background:#ef4444;color:#fff;border:none;border-radius:4px;padding:3px 12px;font-size:.75rem;cursor:pointer;white-space:nowrap;font-family:inherit">Withdraw</button>';
 }
 
