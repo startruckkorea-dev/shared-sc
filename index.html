@@ -1034,7 +1034,7 @@ async function loadMyList() {
     pgSet('list', mine, (item, idx) => {
       const f = item.fields, total = mine.length;
       const lpkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
-      return '<tr onclick="showDetail('+item.id+')" style="cursor:pointer">'+
+      return '<tr onclick="showDetail('+item.id+',\'list\')" style="cursor:pointer">'+
         '<td>'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'-')+'</td>'+
         '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
@@ -1069,7 +1069,7 @@ async function loadApprovalQueue() {
       const f=item.fields, rf=reqMap[String(f.RequestID)]||{};
       const total=mine.length;
       const pkfNames=stripHtml(rf.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
-      return '<tr onclick="showDetail('+f.RequestID+')" style="cursor:pointer">'+
+      return '<tr onclick="showDetail('+f.RequestID+',\'appr\')" style="cursor:pointer">'+
         '<td style="color:#0078d4">'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'')+'</td>'+
         '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.Title||'-')+'</td>'+
@@ -1122,7 +1122,7 @@ async function loadAdminList() {
     pgSet('admin',items,(item,idx)=>{
       const f=item.fields, total=items.length;
       const apkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
-      return '<tr onclick="showDetail('+item.id+')" style="cursor:pointer">'+
+      return '<tr onclick="showDetail('+item.id+',\'admin\')" style="cursor:pointer">'+
         '<td>'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'')+'</td>'+
         '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
@@ -1225,7 +1225,7 @@ async function loadHistoryList() {
       const rf = reqMap[String(af.RequestID)] || {};
       const pkf = stripHtml(rf.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       const myStatus = af.Status || '-';
-      return '<tr onclick="showDetail('+af.RequestID+')" style="cursor:pointer">' +
+      return '<tr onclick="showDetail('+af.RequestID+',\'history\')" style="cursor:pointer">' +
         '<td style="color:#0078d4">'+(total-idx)+'</td>' +
         '<td style="font-size:12px;color:#605e5c;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'-')+'</td>' +
         '<td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.Title||rf.TicketTitle||'-')+'</td>' +
@@ -1245,7 +1245,7 @@ function stripHtml(v){
   if(!v||typeof v!=='string') return v;
   return v.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').trim();
 }
-async function showDetail(reqId) {
+async function showDetail(reqId, fromTab) {
   loading(true);
   try {
     const r = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId+'?$expand=fields');
@@ -1318,6 +1318,31 @@ async function showDetail(reqId) {
     }
     html += pkfLogHtml;
 
+    // ── 결재 의견 제시 (업무 처리자·관리자 입력 가능, 처리함/관리자 탭에서만 노출) ──
+    const canSeeComments = (fromTab==='appr' || fromTab==='admin') &&
+      (isAdmin() || (f.PKFAssignees||'').toLowerCase().includes((user.email||'').toLowerCase()) || (f.PKFAssignees||'').toLowerCase().includes((user.username||'').toLowerCase()));
+    if (canSeeComments) {
+      let comments = [];
+      try { comments = JSON.parse(f.AdminComments||'[]'); } catch(e){ comments=[]; }
+      const commentsListHtml = comments.length
+        ? comments.map(c=>'<div style="background:#f0f6ff;border:1px solid #c7e0f4;border-radius:6px;padding:8px 12px;margin-bottom:8px">'+
+            '<div style="font-size:11px;color:#a19f9d;margin-bottom:3px">'+(c.date||'')+'</div>'+
+            '<div style="font-size:12px;color:#605e5c;margin-bottom:3px">작성자: <span style="font-weight:600;color:#0078d4">'+(c.email||'')+'</span></div>'+
+            '<div style="font-size:13px;color:#323130;white-space:pre-wrap;padding-left:8px">'+(c.text||'')+'</div></div>').join('')
+        : '<div style="font-size:12px;color:#a19f9d;padding:6px 0">등록된 의견이 없습니다.</div>';
+      const _closedStatuses = ['승인완료','반려','철회'];
+      const isClosed = _closedStatuses.includes(f.Status);
+      html += sec('결재 의견 제시') +
+        '<span style="font-size:11px;font-weight:400;color:#a19f9d;margin-left:-4px;display:block;margin-top:-6px;margin-bottom:8px">(업무 처리자, 관리자 입력 가능 · 미결재 건에 한함)</span>' +
+        '<div id="ssc-comments-list" style="margin-bottom:10px;max-height:180px;overflow-y:auto">'+commentsListHtml+'</div>' +
+        (isClosed
+          ? '<div style="font-size:12px;color:#a19f9d;padding:8px 0">이미 처리가 완료된 티켓은 의견을 입력할 수 없습니다.</div>'
+          : '<div style="display:flex;gap:8px;align-items:flex-end">'+
+              '<textarea id="ssc-comment-text" placeholder="의견을 입력해주세요..." rows="2" style="flex:1;border:1px solid #d2d0ce;border-radius:4px;padding:8px 10px;font-size:13px;font-family:inherit;resize:vertical"></textarea>'+
+              '<button onclick="submitSscComment('+reqId+')" style="padding:7px 16px;background:#0078d4;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;white-space:nowrap;height:fit-content">등록</button>'+
+            '</div>');
+    }
+
     // 첨부파일
     let filesHtml = '<div style="font-size:13px;color:#605e5c">첨부파일 없음</div>';
     if (f.AttachedFiles) {
@@ -1374,8 +1399,36 @@ async function showDetail(reqId) {
     document.getElementById('modal-content').innerHTML = html + apprHtml;
     document.getElementById('detail-modal').classList.add('show');
     window._curReqId = reqId;
+    window._curDetailTab = fromTab;
   } catch(e){ alert('조회 오류: '+e.message); }
   finally{ loading(false); }
+}
+
+// ── 결재 의견 제시 등록 (SSC_Requests.AdminComments 필드 사용) ──
+async function submitSscComment(reqId) {
+  const textEl = document.getElementById('ssc-comment-text');
+  const comment = (textEl?.value||'').trim();
+  if(!comment) { alert('의견을 입력해주세요.'); return; }
+  const btn = document.querySelector('#modal-content button[onclick*="submitSscComment"]');
+  try {
+    if(btn){btn.disabled=true;btn.textContent='저장 중...';}
+    const check = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId+'?$expand=fields');
+    const cf = check.fields;
+    if(['승인완료','반려','철회'].includes(cf.Status)) {
+      alert('이미 처리가 완료되어 의견을 입력할 수 없습니다.');
+      await showDetail(reqId, window._curDetailTab);
+      return;
+    }
+    let existing = [];
+    try { existing = JSON.parse(cf.AdminComments||'[]'); } catch(e){ existing=[]; }
+    const now = new Date(new Date().getTime()+9*3600*1000);
+    const p = n=>String(n).padStart(2,'0');
+    const dateStr = `${now.getUTCFullYear()}-${p(now.getUTCMonth()+1)}-${p(now.getUTCDate())} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}`;
+    existing.push({ email: user?.email||user?.username||'', date: dateStr, text: comment });
+    await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{AdminComments: JSON.stringify(existing)}});
+    await showDetail(reqId, window._curDetailTab);
+  } catch(e) { alert('의견 저장 실패: '+e.message); }
+  finally { if(btn){btn.disabled=false;btn.textContent='등록';} }
 }
 function decodeSpHtml(v) {
   if (!v) return '';
@@ -1495,7 +1548,7 @@ async function savePKFChange(reqId) {
     closePKFChangeModal();
     alert('✅ PKF 담당자가 변경되었습니다.');
     closeModal();
-    await showDetail(reqId); // 상세 새로고침
+    await showDetail(reqId, window._curDetailTab); // 상세 새로고침
   } catch(e) { alert('변경 오류: ' + e.message); }
   finally { loading(false); }
 }
