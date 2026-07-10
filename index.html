@@ -676,11 +676,11 @@ async function boot(account) {
     const cfg = _sysConfig;
     // 2nd_ 담당자 키를 동적으로 수집 (Excel에서 _N 추가/삭제 시 자동 반영)
     const _2ndKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_2nd_'+_n]){ _2ndKeys.push('SHARED-SC_2nd_'+_n); _n++; } }
-    // ADMIN_ 키도 동적으로 수집 (GW/ACC-Voucher 등과 동일 패턴, _N 무제한 확장)
-    const _adminKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_ADMIN_'+_n]){ _adminKeys.push('SHARED-SC_ADMIN_'+_n); _n++; } }
+    // ACCESS_ 키를 동적으로 수집 — 앱 입장 게이트 전용 (ADMIN_는 관리자 탭 전용이며 입장권한과 별개)
+    const _accessKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_ACCESS_'+_n]){ _accessKeys.push('SHARED-SC_ACCESS_'+_n); _n++; } }
     const allowedKeys = [
       'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
-      ..._adminKeys,
+      ..._accessKeys,
       ..._2ndKeys
     ];
     const allowed = allowedKeys.map(k=>cfg&&cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
@@ -703,11 +703,11 @@ function checkSscAccess() {
   if (!cfg || !ue) return; // config 없으면 통과
   // 2nd_ 담당자 키를 동적으로 수집 (Excel에서 _N 추가/삭제 시 자동 반영)
   const _2ndKeys = []; { let _n=1; while(cfg['SHARED-SC_2nd_'+_n]){ _2ndKeys.push('SHARED-SC_2nd_'+_n); _n++; } }
-  // ADMIN_ 키도 동적으로 수집 (GW/ACC-Voucher 등과 동일 패턴, _N 무제한 확장)
-  const _adminKeys = []; { let _n=1; while(cfg['SHARED-SC_ADMIN_'+_n]){ _adminKeys.push('SHARED-SC_ADMIN_'+_n); _n++; } }
+  // ACCESS_ 키를 동적으로 수집 — 앱 입장 게이트 전용 (ADMIN_는 관리자 탭 전용이며 입장권한과 별개)
+  const _accessKeys = []; { let _n=1; while(cfg['SHARED-SC_ACCESS_'+_n]){ _accessKeys.push('SHARED-SC_ACCESS_'+_n); _n++; } }
   const allowedKeys = [
     'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
-    ..._adminKeys,
+    ..._accessKeys,
     ..._2ndKeys
   ];
   const allowed = allowedKeys.map(k=>cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
