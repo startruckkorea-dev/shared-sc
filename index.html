@@ -1085,8 +1085,7 @@ async function loadApprovalQueue() {
         '<td><span class="badge badge-'+(rf.Status||'대기')+'">'+(rf.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(rf.RequestDate)+'</td>'+
         '<td onclick="event.stopPropagation()">'+
-          '<button class="btn-approve" onclick="showConfirm('+item.id+',\'승인\','+f.RequestID+')">승인</button> '+
-          '<button class="btn-reject"  onclick="showConfirm('+item.id+',\'반려\','+f.RequestID+')">반려</button>'+
+          '<button class="btn-approve" onclick="showConfirm('+item.id+',\'승인\','+f.RequestID+')">승인</button>'+
         '</td>'+
       '</tr>';
     }, '결재 대기 항목이 없습니다.', 10);
@@ -1413,9 +1412,8 @@ async function showDetail(reqId, fromTab) {
 
         const myPending = apprList.find(a=>{ const ae=(a.fields.ApproverEmail||'').toLowerCase(); return (ae===user.email||ae===(user.username||'').toLowerCase())&&a.fields.Status==='대기'; });
         if(myPending){
-          apprHtml+='<div style="display:flex;gap:10px;margin-top:14px">'+
-            '<button onclick="showConfirm('+myPending.id+',\'승인\','+reqId+')" class="btn-approve" style="flex:1;border-radius:6px;padding:10px;font-size:.9rem;font-weight:700">✅ 승인</button>'+
-            '<button onclick="showConfirm('+myPending.id+',\'반려\','+reqId+')" class="btn-reject"  style="flex:1;border-radius:6px;padding:10px;font-size:.9rem;font-weight:700">❌ 반려</button>'+
+          apprHtml+='<div style="margin-top:14px">'+
+            '<button onclick="showConfirm('+myPending.id+',\'승인\','+reqId+')" class="btn-approve" style="width:100%;border-radius:6px;padding:10px;font-size:.9rem;font-weight:700">✅ 승인</button>'+
           '</div>';
         }
       }
