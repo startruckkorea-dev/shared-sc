@@ -1722,7 +1722,8 @@ function fmtDate(iso){
 }
 function fmtDateOnly(iso){
   if(!iso) return '-';
-  return (iso||'').substring(0,10);
+  const d = new Date(new Date(iso).getTime() + 9*3600*1000); // UTC 저장값을 KST로 보정 (fmtDate와 동일 패턴)
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
 }
 function loading(v){ document.getElementById('loading').classList.toggle('show',v); }
 function dynLoad(v, msg){
