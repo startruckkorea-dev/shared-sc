@@ -654,6 +654,67 @@ async function apiAll(path) {
   return { value: items };
 }
 
+// ══ 감사 로깅 (Excel 내보내기 등) — STK-DB "Logging_data" 폴더에 시스템/날짜별로 개별 JSON 파일 기록 ══
+// fire-and-forget: 호출부를 절대 블로킹하지 않고, 실패해도 원 기능(Excel 내보내기 등)에 영향 없음
+let _logDriveId = null;
+async function _getLogDriveId() {
+  if (_logDriveId) return _logDriveId;
+  try {
+    const drivesRes = await api('/sites/' + siteId + '/drives');
+    let docDrive = (drivesRes.value || []).find(d => ['Documents','문서','Shared Documents'].includes(d.name));
+    if (!docDrive && drivesRes.value && drivesRes.value.length) docDrive = drivesRes.value[0];
+    _logDriveId = docDrive ? docDrive.id : null;
+  } catch(e) { console.warn('[Log] drive 조회 실패:', e.message); }
+  return _logDriveId;
+}
+const _ensuredLogFolders = new Set();
+async function _ensureLogFolder(driveId, folderPath, t) {
+  if (_ensuredLogFolders.has(folderPath)) return true;
+  const parts = folderPath.split('/').filter(Boolean);
+  let cur = '';
+  try {
+    for (const part of parts) {
+      const parentUrl = cur ? `${GRAPH}/drives/${driveId}/root:/${cur}:/children` : `${GRAPH}/drives/${driveId}/root/children`;
+      const res = await fetch(parentUrl, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: part, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' })
+      });
+      if (!res.ok && res.status !== 409) { console.warn('[Log] 폴더 생성 실패:', cur+'/'+part, res.status); return false; }
+      cur = cur ? cur + '/' + part : part;
+    }
+    _ensuredLogFolders.add(folderPath);
+    return true;
+  } catch(e) { console.warn('[Log] 폴더 생성 오류:', e.message); return false; }
+}
+function logAction(systemName, action, detail) {
+  (async () => {
+    try {
+      const driveId = await _getLogDriveId();
+      if (!driveId) return;
+      const t = await getToken();
+      const now = new Date(new Date().getTime() + 9*3600*1000); // KST
+      const p = n => String(n).padStart(2,'0');
+      const dateStr = `${now.getUTCFullYear()}-${p(now.getUTCMonth()+1)}-${p(now.getUTCDate())}`;
+      const timeStr = `${p(now.getUTCHours())}${p(now.getUTCMinutes())}${p(now.getUTCSeconds())}`;
+      const rawUser = (typeof user !== 'undefined' && user && (user.email || user.username)) || 'unknown';
+      const userTag = rawUser.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '_');
+      const rand = Math.random().toString(36).slice(2, 6);
+      const folderPath = `Logging_data/${systemName}/${dateStr}`;
+      const folderOk = await _ensureLogFolder(driveId, folderPath, t);
+      if (!folderOk) return;
+      const path = `/${folderPath}/${timeStr}_${userTag}_${rand}.json`;
+      const body = JSON.stringify({
+        timestampKST: `${dateStr} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())}`,
+        user: rawUser, system: systemName, action, detail: detail || {}
+      });
+      await fetch(GRAPH + '/drives/' + driveId + '/root:' + path + ':/content', {
+        method: 'PUT', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body
+      });
+    } catch(e) { console.warn('[Log] 기록 실패(무시됨):', e.message); }
+  })();
+}
+
 // ══ Boot ══
 async function boot(account) {
   user = account;
@@ -1155,6 +1216,7 @@ async function exportAdminExcel(){
     if(filterType) items=items.filter(i=>i.fields.TicketType===filterType);
     if(filterSearch) items=items.filter(i=>(i.fields.RequesterEmail||'').toLowerCase().includes(filterSearch)||(i.fields.TicketTitle||i.fields.Title||'').toLowerCase().includes(filterSearch));
     if(!items.length){loading(false);showAlert('내보낼 데이터가 없습니다.','','⚠️');return;}
+    logAction('SSC', 'Excel 내보내기', { 건수: items.length, 필터: { 상태: filterStatus||'전체', 유형: filterType||'전체', 검색어: filterSearch||'' } });
     const headers=['번호','신청자','Title(티켓번호)','유형','요청구분','PKF담당자','우선순위','상태','제목','상세 내용','Posting Date','Doc Date','Reverse Date','등록일','접수일','처리 완료일','결재 의견'];
     const fmtComments = raw => {
       let arr=[]; try{ arr=JSON.parse(raw||'[]'); }catch(e){ return ''; }
