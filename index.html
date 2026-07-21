@@ -643,6 +643,8 @@ async function api(path, method='GET', body=null) {
   return res.status === 204 ? null : res.json();
 }
 async function apiAll(path) {
+  // SharePoint 기본 페이지 크기(200건)보다 크게 요청해서 왕복 횟수를 줄임 (데이터 누락 없이 전량은 그대로 다 읽음)
+  if (!/[?&]\$top=/.test(path)) path += (path.includes('?') ? '&' : '?') + '$top=999';
   let items = [], url = path;
   while(url) {
     const d = await api(url);
@@ -1031,7 +1033,7 @@ async function loadMyList() {
   if (!siteId) return;
   dynLoad(true,'티켓 목록 불러오는 중');
   try {
-    const data = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
+    const data = await apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
     const mine = data.value
       .filter(i=>(i.fields.RequesterEmail||'').toLowerCase()===user.email)
       .sort((a,b)=>new Date(b.fields.RequestDate)-new Date(a.fields.RequestDate));
@@ -1062,7 +1064,7 @@ async function loadApprovalQueue() {
   try {
     const [apprData, reqData] = await Promise.all([
       apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields'),
-      api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500')
+      apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500')
     ]);
     const reqMap={};
     reqData.value.forEach(r=>{ reqMap[r.id]=r.fields; });
@@ -1114,7 +1116,7 @@ async function loadAdminList() {
   const filterSearch=((document.getElementById('admin-filter-search')||{value:''}).value||'').toLowerCase();
   try {
     if (!_adminCache.length) {
-      const d=await api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
+      const d=await apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
       _adminCache=d.value.sort((a,b)=>new Date(b.fields.RequestDate)-new Date(a.fields.RequestDate));
     }
     let items=_adminCache;
@@ -1144,7 +1146,7 @@ async function loadAdminList() {
 async function exportAdminExcel(){
   loading(true,'Excel 생성 중...');
   try {
-    const data = await api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
+    const data = await apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
     const filterStatus=(document.getElementById('admin-filter-status')||{value:''}).value;
     const filterType=(document.getElementById('admin-filter-type')||{value:''}).value;
     const filterSearch=((document.getElementById('admin-filter-search')||{value:''}).value||'').toLowerCase();
@@ -1205,7 +1207,7 @@ async function loadHistoryList() {
 
     const [apprData, reqData] = await Promise.all([
       apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields'),
-      api('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500')
+      apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500')
     ]);
 
     const reqMap = {};
