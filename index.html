@@ -661,6 +661,7 @@ async function _getLogDriveId() {
   if (_logDriveId) return _logDriveId;
   try {
     const drivesRes = await api('/sites/' + siteId + '/drives');
+    console.log('[Log] drives 목록:', (drivesRes.value||[]).map(d=>d.name));
     let docDrive = (drivesRes.value || []).find(d => ['Documents','문서','Shared Documents'].includes(d.name));
     if (!docDrive && drivesRes.value && drivesRes.value.length) docDrive = drivesRes.value[0];
     _logDriveId = docDrive ? docDrive.id : null;
@@ -690,9 +691,12 @@ async function _ensureLogFolder(driveId, folderPath, t) {
 function logAction(systemName, action, detail) {
   (async () => {
     try {
+      console.log('[Log] 시작:', systemName, action);
       const driveId = await _getLogDriveId();
-      if (!driveId) return;
+      console.log('[Log] driveId:', driveId);
+      if (!driveId) { console.warn('[Log] driveId를 못 구해서 중단'); return; }
       const t = await getToken();
+      console.log('[Log] 토큰 확보:', t ? '성공' : '실패');
       const now = new Date(new Date().getTime() + 9*3600*1000); // KST
       const p = n => String(n).padStart(2,'0');
       const dateStr = `${now.getUTCFullYear()}-${p(now.getUTCMonth()+1)}-${p(now.getUTCDate())}`;
@@ -702,16 +706,19 @@ function logAction(systemName, action, detail) {
       const rand = Math.random().toString(36).slice(2, 6);
       const folderPath = `Logging_data/${systemName}/${dateStr}`;
       const folderOk = await _ensureLogFolder(driveId, folderPath, t);
-      if (!folderOk) return;
+      console.log('[Log] 폴더 준비:', folderOk, folderPath);
+      if (!folderOk) { console.warn('[Log] 폴더 생성/확인 실패로 중단'); return; }
       const path = `/${folderPath}/${timeStr}_${userTag}_${rand}.json`;
       const body = JSON.stringify({
         timestampKST: `${dateStr} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())}`,
         user: rawUser, system: systemName, action, detail: detail || {}
       });
-      await fetch(GRAPH + '/drives/' + driveId + '/root:' + path + ':/content', {
+      const putRes = await fetch(GRAPH + '/drives/' + driveId + '/root:' + path + ':/content', {
         method: 'PUT', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body
       });
-    } catch(e) { console.warn('[Log] 기록 실패(무시됨):', e.message); }
+      console.log('[Log] 파일 생성 응답:', putRes.status, path);
+      if (!putRes.ok) console.warn('[Log] 파일 생성 실패 응답 본문:', await putRes.text());
+    } catch(e) { console.warn('[Log] 기록 실패(무시됨):', e.message, e); }
   })();
 }
 
