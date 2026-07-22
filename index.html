@@ -674,14 +674,18 @@ async function _ensureLogFolder(driveId, folderPath, t) {
   let cur = '';
   try {
     for (const part of parts) {
+      const nextPath = cur ? cur + '/' + part : part;
+      // 이미 있는지 먼저 조용히 확인 — 있으면 생성 시도 자체를 안 해서 콘솔에 불필요한 409 노이즈가 안 남음
+      const checkRes = await fetch(`${GRAPH}/drives/${driveId}/root:/${nextPath}`, { headers: { Authorization: 'Bearer ' + t } });
+      if (checkRes.ok) { cur = nextPath; continue; }
       const parentUrl = cur ? `${GRAPH}/drives/${driveId}/root:/${cur}:/children` : `${GRAPH}/drives/${driveId}/root/children`;
       const res = await fetch(parentUrl, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: part, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' })
       });
-      if (!res.ok && res.status !== 409) { console.warn('[Log] 폴더 생성 실패:', cur+'/'+part, res.status); return false; }
-      cur = cur ? cur + '/' + part : part;
+      if (!res.ok && res.status !== 409) { console.warn('[Log] 폴더 생성 실패:', nextPath, res.status); return false; }
+      cur = nextPath;
     }
     _ensuredLogFolders.add(folderPath);
     return true;
