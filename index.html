@@ -617,9 +617,7 @@ let IT_MANAGER   = { name: 'IT Support', email: 'stk_s_sharepoint@hyosung.com' }
 async function signIn() {
   try {
     if (window !== window.top) { window.open(window.location.href,'_blank'); return; }
-    const r = await msal.loginPopup({ scopes: SCOPES });
-    msal.setActiveAccount(r.account);
-    await boot(r.account);
+    await msal.loginRedirect({ scopes: SCOPES });
   } catch(e) { showLoginErr(e.message); }
 }
 function signOut() { msal.logoutRedirect(); }
