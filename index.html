@@ -634,7 +634,7 @@ async function getToken() {
 
 async function api(path, method='GET', body=null) {
   const t = await getToken();
-  const opts = { method, headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' } };
+  const opts = { method, headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json', Prefer: 'HonorNonIndexedQueriesWarningMayFailRandomly' } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(GRAPH + path, opts);
   if (!res.ok) throw new Error((await res.json())?.error?.message || res.status);
