@@ -1126,13 +1126,13 @@ async function loadApprovalQueue() {
   dynLoad(true,'결재 정보 확인 중');
   try {
     const [apprData, reqData] = await Promise.all([
-      apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields'),
+      apiAll('/sites/'+siteId+'/lists/'+sscApr()+"/items?$expand=fields&$filter=fields/Status eq '대기'"),
       apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500')
     ]);
     const reqMap={};
     reqData.value.forEach(r=>{ reqMap[r.id]=r.fields; });
     const mine = apprData.value
-      .filter(i=>{ const ae=(i.fields.ApproverEmail||'').toLowerCase(); return (ae===user.email||ae===(user.username||'').toLowerCase()) && i.fields.Status==='대기'; })
+      .filter(i=>{ const ae=(i.fields.ApproverEmail||'').toLowerCase(); return (ae===user.email||ae===(user.username||'').toLowerCase()); })
       .sort((a,b)=>b.fields.RequestID-a.fields.RequestID);
     dynLoad(false);
     pgSet('appr', mine, (item,idx)=>{
@@ -1163,8 +1163,9 @@ async function loadApprovalQueue() {
 async function refreshApprBadge() {
   if (!siteId||!user) return;
   try {
-    const data = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
-    const cnt = data.value.filter(i=>{ const ae=(i.fields.ApproverEmail||'').toLowerCase(); return (ae===user.email||ae===(user.username||'').toLowerCase())&&i.fields.Status==='대기'; }).length;
+    // 전체 이력이 아니라 '지금 대기중인 것'만 서버에서 필터링 — 리스트가 아무리 쌓여도 응답 크기가 거의 일정하게 유지됨
+    const data = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+"/items?$expand=fields&$filter=fields/Status eq '대기'");
+    const cnt = data.value.filter(i=>{ const ae=(i.fields.ApproverEmail||'').toLowerCase(); return (ae===user.email||ae===(user.username||'').toLowerCase()); }).length;
     const b=document.getElementById('appr-badge');
     b.textContent=cnt; b.style.display=cnt?'inline':'none';
   } catch(e){}
@@ -1461,8 +1462,8 @@ async function showDetail(reqId, fromTab) {
     // Approvals
     let apprHtml = '';
     try {
-      const apprData = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
-      const apprList = apprData.value.filter(i=>i.fields.RequestID==reqId).sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
+      const apprData = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields&$filter=fields/RequestID eq '+parseInt(reqId));
+      const apprList = apprData.value.sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
       if(apprList.length){
         const sc={'대기':'#7d5700','승인':'#107c10','반려':'#a4262c','대기(잠김)':'#605e5c','승인완료':'#107c10'};
         apprHtml = sec('처리 이력') +
@@ -1627,9 +1628,8 @@ async function savePKFChange(reqId) {
 
     // 2) SSC_Approvals에서 해당 티켓의 PKF담당자 행 찾아서 업데이트
     try {
-      const apprData = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
+      const apprData = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields&$filter=fields/RequestID eq '+parseInt(reqId));
       const pkfRows = apprData.value.filter(i =>
-        String(i.fields.RequestID) === String(reqId) &&
         (i.fields.ApproverRole||'').includes('PKF')
       );
       for (const row of pkfRows) {
@@ -1701,9 +1701,8 @@ async function doApproval(){
     if(action==='반려'){
       await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{Status:'반려', CompletedDate:new Date().toISOString()}});
     } else {
-      const all = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
-      const next = all.value.filter(i=>Number(i.fields.RequestID)===Number(reqId)&&i.fields.Status==='대기(잠김)')
-                             .sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
+      const all = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+"/items?$expand=fields&$filter=fields/RequestID eq "+parseInt(reqId)+" and fields/Status eq '대기(잠김)'");
+      const next = all.value.sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
       if(next.length) await api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+next[0].id,'PATCH',{fields:{Status:'대기'}});
       else await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{Status:'승인완료', CompletedDate:new Date().toISOString()}});
     }
@@ -1720,8 +1719,8 @@ async function withdrawRequest(e, reqId) {
   if(!confirm('신청을 철회하시겠습니까?\n철회 후에는 되돌릴 수 없습니다.')) return;
   loading(true);
   try {
-    const aprData=await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields');
-    const myAprs=aprData.value.filter(i=>Number(i.fields.RequestID)===Number(reqId));
+    const aprData=await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields&$filter=fields/RequestID eq '+parseInt(reqId));
+    const myAprs=aprData.value;
     const first=myAprs.sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder)[0];
     const firstSt=(first?.fields?.Status||'').trim();
     if(firstSt!=='대기'){ showAlert('철회 불가','이미 결재가 진행된 신청은 철회할 수 없습니다.','⚠️'); return; }
