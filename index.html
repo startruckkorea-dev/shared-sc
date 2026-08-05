@@ -1256,7 +1256,7 @@ async function exportAdminExcel(){
     ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length-1,c:headers.length-1}})};
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'SSC Tickets');
-    XLSX.writeFile(wb,'SSCTicket_Admin_'+new Date().toISOString().slice(0,10)+'.xlsx');
+    XLSX.writeFile(wb,'SSCTicket_Admin_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
   }catch(e){showAlert('Excel 생성 실패',e.message,'⚠️');}
   finally{loading(false);}
 }
