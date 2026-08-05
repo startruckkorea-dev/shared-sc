@@ -1093,9 +1093,9 @@ function switchTab(name) {
 
 // ══ My List ══
 async function loadMyList() {
-  if (!siteId) { const s = await api('/sites/'+SITE_PATH); siteId = s.id; }
   dynLoad(true,'티켓 목록 불러오는 중');
   try {
+    if (!siteId) { const s = await api('/sites/'+SITE_PATH); siteId = s.id; }
     const data = await apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
     const mine = data.value
       .filter(i=>(i.fields.RequesterEmail||'').toLowerCase()===user.email)
@@ -1122,9 +1122,9 @@ async function loadMyList() {
 
 // ══ Approval queue ══
 async function loadApprovalQueue() {
-  if (!siteId) { const s = await api('/sites/'+SITE_PATH); siteId = s.id; }
   dynLoad(true,'결재 정보 확인 중');
   try {
+    if (!siteId) { const s = await api('/sites/'+SITE_PATH); siteId = s.id; }
     const [apprData, reqData] = await Promise.all([
       apiAll('/sites/'+siteId+'/lists/'+sscApr()+"/items?$expand=fields&$filter=fields/Status eq '대기'"),
       apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500')
