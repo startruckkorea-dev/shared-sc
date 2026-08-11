@@ -2214,6 +2214,7 @@ function closeLinkTicketModal() {
 function ltSwitchSys(sys) {
   ltCurrentSys = sys;
   _ltStatusSel.clear();   // 시스템마다 상태 분포가 달라 이전 선택을 끌고 가지 않는다
+  _ltPostingSel.clear();  // Posting은 ACC 전용이므로 탭이 바뀌면 반드시 해제
   document.querySelectorAll('.lt-tab').forEach(t => t.classList.toggle('active', t.dataset.sys === sys));
   ltLoadList();
 }
@@ -2367,6 +2368,7 @@ async function ltApplyDateFilter() {
     await ltGetApprovalIndex(ltCurrentSys);
   }
   ltRenderStatusChips();   // 기간이 바뀌면 상태별 건수도 달라진다
+  ltRenderPostingChips();
   ltRenderPage(1);
 }
 function ltResetDateFilter() {
@@ -2375,6 +2377,7 @@ function ltResetDateFilter() {
   document.getElementById('lt-date-to').value = '';
   _ltDateFrom = ''; _ltDateTo = '';
   ltRenderStatusChips();
+  ltRenderPostingChips();
   ltRenderPage(1);
 }
 // ── 상태 필터 (승인완료 / 대기 / 반려 / 철회 …) ─────────────────────────
@@ -2407,6 +2410,37 @@ function ltStatusBaseItems() {
   }
   return base;
 }
+// ACC Voucher 전용 Posting 필터 — 판정 기준은 ACC 시스템과 동일하게 B1 Doc No. 유무
+let _ltPostingSel = new Set();   // 비어 있으면 전체
+function ltPostingOf(it) { return (it.fields.B1DocNo || '').trim() ? 'done' : 'todo'; }
+function ltRenderPostingChips() {
+  const row = document.getElementById('lt-posting-row');
+  if (!row) return;
+  if (ltCurrentSys !== 'ACC') { row.innerHTML = ''; _ltPostingSel.clear(); return; }
+  // 상태 칩과 같은 방식: 자기 자신(Posting)을 제외한 나머지 조건을 적용한 결과로 센다
+  let base = ltStatusBaseItems();
+  if (_ltStatusSel.size) base = base.filter(it => _ltStatusSel.has((it.fields.Status || '').trim()));
+  const cnt = { done: 0, todo: 0 };
+  base.forEach(it => cnt[ltPostingOf(it)]++);
+  const chip = (key, label) =>
+    '<span class="lt-status-chip' + (_ltPostingSel.has(key) ? ' on' : '') + '" onclick="ltTogglePosting(\'' + key + '\')">'
+    + label + '<span class="lt-status-cnt">' + cnt[key] + '</span></span>';
+  row.innerHTML =
+    '<span style="font-size:.68rem;color:#94a3b8;margin-right:2px">Posting</span>'
+    + '<span class="lt-status-chip' + (_ltPostingSel.size === 0 ? ' on' : '') + '" onclick="ltClearPostingFilter()">전체'
+      + '<span class="lt-status-cnt">' + base.length + '</span></span>'
+    + chip('done', '완료') + chip('todo', '미완료');
+}
+function ltTogglePosting(k) {
+  if (_ltPostingSel.has(k)) _ltPostingSel.delete(k); else _ltPostingSel.add(k);
+  ltRenderPostingChips();
+  ltRenderPage(1);
+}
+function ltClearPostingFilter() {
+  _ltPostingSel.clear();
+  ltRenderPostingChips();
+  ltRenderPage(1);
+}
 function ltRenderStatusChips() {
   const row = document.getElementById('lt-status-row');
   if (!row) return;
@@ -2434,6 +2468,7 @@ function ltRenderStatusChips() {
 function ltToggleStatus(s) {
   if (_ltStatusSel.has(s)) _ltStatusSel.delete(s); else _ltStatusSel.add(s);
   ltRenderStatusChips();   // 선택 표시(파란 채움)를 즉시 반영 — 예전엔 목록만 다시 그려 칩이 그대로였다
+  ltRenderPostingChips();  // 상태가 바뀌면 Posting 건수도 달라진다
   ltRenderPage(1);
 }
 function ltClearStatusFilter() {
@@ -2563,6 +2598,7 @@ async function ltLoadList() {
         : '본인이 신청한 티켓만 표시됩니다';
     }
     ltRenderStatusChips();   // 이번 목록에 존재하는 상태로 칩을 다시 구성
+    ltRenderPostingChips();  // ACC 탭이면 Posting 칩도 구성
     ltRenderPage(1);
   } catch (e) {
     if (myToken !== _ltReqToken) return;
@@ -2593,6 +2629,10 @@ function ltRenderPage(page) {
   if (_ltStatusSel.size) {
     filtered = filtered.filter(it => _ltStatusSel.has((it.fields.Status || '').trim()));
   }
+  // Posting 필터 (ACC 전용)
+  if (ltCurrentSys === 'ACC' && _ltPostingSel.size) {
+    filtered = filtered.filter(it => _ltPostingSel.has(ltPostingOf(it)));
+  }
   const dateOn = !!(_ltDateFrom || _ltDateTo);
   if (dateOn) {
     filtered = filtered.filter(it => {
@@ -2606,7 +2646,7 @@ function ltRenderPage(page) {
   if (!filtered.length) {
     // 기본값으로 '내 결재건'이 켜져 있어서, 결재 이력이 없는 사용자는 이유 없이 빈 목록을 보게 된다.
     // 무엇 때문에 비었는지 알려줘야 체크를 풀 생각을 할 수 있다.
-    const filterOn = _ltMineOnly || _ltAccOnly || dateOn || _ltStatusSel.size > 0;
+    const filterOn = _ltMineOnly || _ltAccOnly || dateOn || _ltStatusSel.size > 0 || _ltPostingSel.size > 0;
     const msg = kw ? '검색 결과가 없습니다'
       : filterOn ? '조건에 맞는 티켓이 없습니다<br><span style="font-size:.68rem;color:#94a3b8">결재건 필터나 기간 조건을 해제하면 범위가 넓어집니다</span>'
       : '표시할 티켓이 없습니다';
@@ -2823,7 +2863,7 @@ function ltOpenRealDetail(sys, id) {
       <div class="lt-tab" data-sys="FA" onclick="ltSwitchSys('FA')">FA Registration</div>
     </div>
     <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
-      <input type="text" id="lt-search-input" placeholder="제목, 신청자로 검색..." oninput="ltRenderStatusChips();ltRenderPage(1)" style="flex:1;min-width:0;padding:6px 10px;border:1px solid #d0d7de;border-radius:7px;font-size:.76rem;font-family:inherit">
+      <input type="text" id="lt-search-input" placeholder="제목, 신청자로 검색..." oninput="ltRenderStatusChips();ltRenderPostingChips();ltRenderPage(1)" style="flex:1;min-width:0;padding:6px 10px;border:1px solid #d0d7de;border-radius:7px;font-size:.76rem;font-family:inherit">
       <label class="lt-filter-chip" title="내가 결재자로서 승인·반려 처리한 건">
         <input type="checkbox" id="lt-mine-only" checked onchange="ltToggleMineOnly()">내 결재건
       </label>
@@ -2842,6 +2882,7 @@ function ltOpenRealDetail(sys, id) {
       <span class="lt-date-reset" onclick="ltResetDateFilter()" title="기간 조건 해제">✕ 기간 해제</span>
     </div>
     <div class="lt-statusrow" id="lt-status-row"></div>
+    <div class="lt-statusrow" id="lt-posting-row"></div>
     <div class="lt-results" id="lt-results"><div class="lt-empty">불러오는 중...</div></div>
     <div id="lt-pagination" style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;font-size:.78rem;color:#64748b"></div>
     <div class="lt-actions">
