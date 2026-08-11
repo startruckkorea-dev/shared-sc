@@ -376,7 +376,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
         <span id="user-name"></span>
         <button id="btn-logout" onclick="signOut()">로그아웃</button>
       </div>
-      <a href="https://aps.startruckkorea.com/" target="_self"
+      <a id="btn-back-aps" href="https://aps.startruckkorea.com/" target="_self"
         style="text-decoration:none;display:inline-flex;align-items:center;gap:7px;background:#0078d4;color:#fff;border-radius:6px;padding:7px 14px;font-size:.8rem;font-weight:600;font-family:'Segoe UI',sans-serif;letter-spacing:-.2px;box-shadow:0 1px 4px rgba(0,120,212,.25);transition:background .15s"
         onmouseover="this.style.background='#106ebe'" onmouseout="this.style.background='#0078d4'">
         <span style="font-size:1rem;line-height:1">📬</span><span>돌아가기</span>
@@ -855,6 +855,14 @@ async function boot(account) {
       document.getElementById('app').style.display = 'none';
       document.getElementById('preopen-screen').style.display = 'flex';
       return;
+    }
+
+    // PKF 담당자(SHARED-SC_2nd_N)는 APS 통합 결재함 접근 대상이 아니므로 「돌아가기」 버튼을 숨긴다.
+    // 눌러도 권한이 없어 빈 화면만 보게 되므로 애초에 노출하지 않는 편이 혼선이 적다.
+    const _2ndEmails = _2ndKeys.map(k => (cfg[k] && cfg[k].email || '').trim().toLowerCase()).filter(Boolean);
+    if (_2ndEmails.includes((user.email || '').toLowerCase())) {
+      const _backBtn = document.getElementById('btn-back-aps');
+      if (_backBtn) _backBtn.style.display = 'none';
     }
 
     await loadListIds();
