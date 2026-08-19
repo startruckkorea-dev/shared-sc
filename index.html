@@ -2213,7 +2213,7 @@ function showLoginErr(msg){ const el=document.getElementById('login-err'); el.st
 
 // ══════════════════════════════════════════════════════════
 // 관련 티켓 링크 — 본인이 신청한 FA/BP/ACC Voucher 티켓만 검색해서 참조 삽입
-// ⚠️ 이 기능은 UAT 테스트 목적으로만 추가된 것으로, 프로덕션(shared-sc)에는 반영하지 않음
+// 2026-08-10 SSC-UAT 검증 완료 후 프로덕션에 반영됨 (이전 "UAT 전용" 주석은 사실과 달라 정정)
 // ══════════════════════════════════════════════════════════
 const LT_SYS = {
   FA:  { domain: 'https://fa.startruckkorea.com/',           list: 'FA_Requests' },
@@ -2245,13 +2245,24 @@ function ltSwitchSys(sys) {
   document.querySelectorAll('.lt-tab').forEach(t => t.classList.toggle('active', t.dataset.sys === sys));
   ltLoadList();
 }
-async function ltGetAccListId() {
-  if (_accVolListId) return _accVolListId;
+// 문서 라이브러리 ID는 세션 중 바뀌지 않으므로 한 번만 조회해 재사용한다.
+// (세대 설정 파일 acc_voucher_volumes.json 자체는 매번 새로 읽으므로,
+//  "관리자가 세션 도중 세대를 추가·전환할 수 있다"는 기존 전제는 그대로 유지된다.)
+let _ltDocDriveId = null;
+async function ltGetDocDriveId() {
+  if (_ltDocDriveId) return _ltDocDriveId;
   if (!siteId) { const s = await api('/sites/' + SITE_PATH); siteId = s.id; }
   const drivesRes = await api('/sites/' + siteId + '/drives');
   const docDrive = (drivesRes.value || []).find(d => ['Documents', '문서', 'Shared Documents'].includes(d.name)) || (drivesRes.value || [])[0];
+  if (!docDrive) throw new Error('문서 라이브러리를 찾을 수 없습니다');
+  _ltDocDriveId = docDrive.id;
+  return _ltDocDriveId;
+}
+async function ltGetAccListId() {
+  if (_accVolListId) return _accVolListId;
+  const driveId = await ltGetDocDriveId();
   const t = await getToken();
-  const res = await fetch(GRAPH + '/drives/' + docDrive.id + '/root:/acc_voucher_volumes.json:/content', { headers: { Authorization: 'Bearer ' + t } });
+  const res = await fetch(GRAPH + '/drives/' + driveId + '/root:/acc_voucher_volumes.json:/content', { headers: { Authorization: 'Bearer ' + t } });
   if (res.ok) { const cfg = await res.json(); _accVolListId = cfg.reqList; }
   else { _accVolListId = '060b5c19-b1ed-40a3-9dbd-fae9a6648a57'; }
   return _accVolListId;
@@ -2273,7 +2284,8 @@ async function ltLoadConfig() {
   // boot()이 아직 loadSystemConfig() 로딩 중일 수 있으므로, _configLoaded가 true가 될 때까지 최대 5초 대기
   // (아직 로딩 중인 상태를 그대로 "권한 없음"으로 성급하게 확정해버리던 경쟁상태 방지)
   if (typeof _configLoaded !== 'undefined' && !_configLoaded) {
-    for (let i = 0; i < 25 && !_configLoaded; i++) { await new Promise(r => setTimeout(r, 200)); }
+    // 최대 대기 시간(5초)은 그대로 두되, 준비되는 즉시 빠져나오도록 확인 간격을 좁힌다.
+    for (let i = 0; i < 100 && !_configLoaded; i++) { await new Promise(r => setTimeout(r, 50)); }
   }
   if (typeof _sysConfig !== 'undefined' && _sysConfig && Object.keys(_sysConfig).length) { _ltCfg = _sysConfig; return _ltCfg; }
   if (_ltCfg && Object.keys(_ltCfg).length) return _ltCfg;
@@ -2520,11 +2532,9 @@ let _ltAccVolIncomplete = false;
 async function ltGetAccApprovalListIds() {
   _ltAccVolIncomplete = false;
   try {
-    if (!siteId) { const s = await api('/sites/' + SITE_PATH); siteId = s.id; }
-    const drivesRes = await api('/sites/' + siteId + '/drives');
-    const docDrive = (drivesRes.value || []).find(d => ['Documents', '문서', 'Shared Documents'].includes(d.name)) || (drivesRes.value || [])[0];
+    const driveId = await ltGetDocDriveId();
     const t = await getToken();
-    const res = await fetch(GRAPH + '/drives/' + docDrive.id + '/root:/acc_voucher_volumes.json:/content', { headers: { Authorization: 'Bearer ' + t } });
+    const res = await fetch(GRAPH + '/drives/' + driveId + '/root:/acc_voucher_volumes.json:/content', { headers: { Authorization: 'Bearer ' + t } });
     if (res.ok) {
       const cfg = await res.json();
       const list = (cfg.aprVolumes || []).map(v => v.id).filter(Boolean);
@@ -2577,17 +2587,44 @@ async function ltLoadList() {
   document.getElementById('lt-search-input').value = '';
   try {
     if (!siteId) { const s = await api('/sites/' + SITE_PATH); siteId = s.id; }
-    let listId = LT_SYS[ltCurrentSys].list;
-    if (ltCurrentSys === 'ACC') listId = await ltGetAccListId();
     const myEmail = (user?.email || user?.username || '').trim().toLowerCase();
-    const scope = await ltGetScope(ltCurrentSys);
-    const data = await apiAll('/sites/' + siteId + '/lists/' + listId + '/items?$expand=fields&$top=500');
-    if (myToken !== _ltReqToken) return; // 그 사이 다른 탭으로 전환됐으면 이 응답은 버림 (out-of-order 방지)
-    let items = data.value || [];
-    if (scope.scope === 'own') {
-      items = items.filter(it => (it.fields.RequesterEmail || '').toLowerCase() === myEmail);
-    } else if (scope.scope === 'type') {
-      items = items.filter(it => (it.fields.VoucherType || '') === scope.typeFilter);
+    // 리스트 ID 확인과 권한 판정은 서로 의존하지 않으므로 동시에 진행한다(왕복 겹치기).
+    const [listId, scope] = await Promise.all([
+      ltCurrentSys === 'ACC' ? ltGetAccListId() : Promise.resolve(LT_SYS[ltCurrentSys].list),
+      ltGetScope(ltCurrentSys)
+    ]);
+    if (myToken !== _ltReqToken) return;
+    const base = '/sites/' + siteId + '/lists/' + listId + '/items?$expand=fields&$top=500';
+    // 권한 범위를 서버 필터로 옮긴다. 전량을 받아 클라이언트에서 버리면
+    // 볼 권한이 없는 티켓 원문까지 브라우저에 도착한다.
+    let srvFilter = '';
+    if (scope.scope === 'own' && myEmail) {
+      srvFilter = "&$filter=fields/RequesterEmail eq '" + myEmail.replace(/'/g, "''") + "'";
+    } else if (scope.scope === 'type' && scope.typeFilter) {
+      srvFilter = "&$filter=fields/VoucherType eq '" + String(scope.typeFilter).replace(/'/g, "''") + "'";
+    }
+    let items = null;
+    if (srvFilter) {
+      try {
+        const r = await apiAll(base + srvFilter);
+        if (myToken !== _ltReqToken) return;
+        const v = r.value || [];
+        // 0건은 "정말 없음"일 수도, "필터가 안 먹음"일 수도 있다.
+        // 빈 목록을 그대로 보여주면 사용자는 구분할 수 없으므로 전량조회로 한 번 더 확인한다.
+        if (v.length) items = v;
+      } catch (fe) {
+        console.warn('[관련티켓링크] 서버 필터 조회 실패 → 전량조회로 폴백:', fe.message);
+      }
+    }
+    if (items === null) {
+      const data = await apiAll(base);
+      if (myToken !== _ltReqToken) return; // 그 사이 다른 탭으로 전환됐으면 이 응답은 버림 (out-of-order 방지)
+      items = data.value || [];
+      if (scope.scope === 'own') {
+        items = items.filter(it => (it.fields.RequesterEmail || '').toLowerCase() === myEmail);
+      } else if (scope.scope === 'type') {
+        items = items.filter(it => (it.fields.VoucherType || '') === scope.typeFilter);
+      }
     }
     // scope==='all'이면 필터 없이 전체
     // 일반 신청자(scope='own')는 결재자가 아니라 결재 기록이 없다.
