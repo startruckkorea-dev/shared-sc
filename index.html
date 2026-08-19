@@ -274,7 +274,11 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .lt-requester{color:#64748b;flex:1 1 0;min-width:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lt-col-status{min-width:54px;text-align:center}
 .lt-col-type{min-width:88px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lt-col-date{min-width:124px;text-align:right;font-variant-numeric:tabular-nums}
+.lt-col-date{min-width:118px;text-align:right;font-variant-numeric:tabular-nums}
+/* ACC Voucher 탭은 오른쪽에 Posting 뱃지가 하나 더 붙어 신청자 칸이 그만큼 좁아진다.
+   ACC의 유형 값은 AP·GL·ADV·AP(IMS)로 모두 짧으므로(최대 51px) 이 탭에서만 유형 칸을 줄여
+   그만큼을 신청자 이메일에 돌려준다. BP(Customer)·FA(Registration)는 길어서 88px 유지. */
+#lt-results[data-sys="ACC"] .lt-col-type{min-width:56px}
 /* 값이 없는 행에서도 컬럼 자리는 유지해야 아래 위 행의 정렬이 깨지지 않는다 */
 .lt-badge-none{background:transparent;color:transparent}
 /* 기간 필터 줄 — 기준 날짜 선택 + 시작/종료일 */
@@ -310,7 +314,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .lt-badge-type{background:#eef1f5;color:#475569;font-weight:600}
 .lt-date{color:#94a3b8;flex-shrink:0}
 /* ACC Voucher 탭 전용 — 각 행 우측 상단의 Posting 상태 뱃지 */
-.lt-posting{flex-shrink:0;display:inline-flex;align-items:center;gap:3px;border-radius:8px;padding:2px 7px;font-size:.62rem;font-weight:700;white-space:nowrap}
+.lt-posting{flex-shrink:0;display:inline-flex;align-items:center;gap:2px;border-radius:8px;padding:2px 5px;font-size:.58rem;font-weight:700;white-space:nowrap}
 .lt-posting-done{background:#dff6dd;color:#107c10}
 .lt-posting-todo{background:#fff4ce;color:#7d5700}
 /* Posting 완료 건 선택 시 뜨는 확인 모달 (관련 티켓 모달보다 위에 떠야 하므로 z-index를 더 높게) */
@@ -2591,6 +2595,7 @@ async function ltToggleMineOnly() {
 async function ltLoadList() {
   const myToken = ++_ltReqToken;
   const resultsEl = document.getElementById('lt-results');
+  resultsEl.dataset.sys = ltCurrentSys;   // 탭별 컬럼 폭 적용용
   resultsEl.innerHTML = '<div class="lt-empty">불러오는 중...</div>';
   document.getElementById('lt-search-input').value = '';
   try {
@@ -2689,6 +2694,7 @@ let _ltSelected = new Map(); // key: 'SYS:id' -> {sys, title, id}  (모달 안�
 let _ltAttached = new Map(); // key: 'SYS:id' -> {sys, title, id}  (실제로 폼에 첨부 확정된 항목)
 function ltRenderPage(page) {
   const resultsEl = document.getElementById('lt-results');
+  resultsEl.dataset.sys = ltCurrentSys;
   const pagEl = document.getElementById('lt-pagination');
   const kw = (document.getElementById('lt-search-input').value || '').trim().toLowerCase();
   // 제목뿐 아니라 신청자 이메일로도 찾을 수 있게 한다 (예: 'jimmy.lee' 입력 시 해당 신청 건 전부)
