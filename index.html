@@ -279,6 +279,9 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
    ACC의 유형 값은 AP·GL·ADV·AP(IMS)로 모두 짧으므로(최대 51px) 이 탭에서만 유형 칸을 줄여
    그만큼을 신청자 이메일에 돌려준다. BP(Customer)·FA(Registration)는 길어서 88px 유지. */
 #lt-results[data-sys="ACC"] .lt-col-type{min-width:56px}
+/* BP는 Vendor(46px)·Customer(57px) 두 값뿐이라 기본 88px에 30px가 비어 있었다.
+   그만큼을 신청자 이메일 칸에 돌려준다. FA는 Registration(79px)이 있어 88px 유지. */
+#lt-results[data-sys="BP"] .lt-col-type{min-width:64px}
 /* 값이 없는 행에서도 컬럼 자리는 유지해야 아래 위 행의 정렬이 깨지지 않는다 */
 .lt-badge-none{background:transparent;color:transparent}
 /* 기간 필터 줄 — 기준 날짜 선택 + 시작/종료일 */
