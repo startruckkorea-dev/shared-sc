@@ -266,9 +266,17 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .lt-result-body{flex:1;min-width:0}
 .lt-result-title{font-weight:700;color:#0078d4;text-decoration:none;display:block;font-size:.735rem;line-height:1.3}
 .lt-result-title:hover{text-decoration:underline}
-/* 메타는 한 줄로 압축 — 신청자·상태·유형·신청일을 가운데 점으로 이어붙여 높이를 아낀다 */
-.lt-result-meta{display:flex;flex-wrap:nowrap;align-items:center;gap:5px;color:#8a94a6;font-size:.655rem;margin-top:2px;overflow:hidden}
-.lt-requester{color:#64748b;flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 메타는 한 줄로 압축 — 신청자·상태·유형·신청일 순.
+   신청자 길이가 제각각이라 뒤따르는 항목들이 행마다 어긋나 보였다.
+   신청자가 남는 폭을 모두 차지하게 하고(flex:1) 상태·유형·신청일은 고정 폭 컬럼으로 두어
+   여러 행이 오른쪽 기준으로 세로로 맞아떨어지게 한다. 신청일은 항상 맨 오른쪽 고정. */
+.lt-result-meta{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;color:#8a94a6;font-size:.655rem;margin-top:2px;overflow:hidden}
+.lt-requester{color:#64748b;flex:1 1 0;min-width:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt-col-status{min-width:54px;text-align:center}
+.lt-col-type{min-width:88px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt-col-date{min-width:124px;text-align:right;font-variant-numeric:tabular-nums}
+/* 값이 없는 행에서도 컬럼 자리는 유지해야 아래 위 행의 정렬이 깨지지 않는다 */
+.lt-badge-none{background:transparent;color:transparent}
 /* 기간 필터 줄 — 기준 날짜 선택 + 시작/종료일 */
 .lt-daterow{display:flex;align-items:center;gap:6px;margin-bottom:7px}
 .lt-daterow select,.lt-daterow input[type=date]{
@@ -2727,10 +2735,11 @@ function ltRenderPage(page) {
     const checked = _ltSelected.has(key) ? 'checked' : '';
     const rowSel = _ltSelected.has(key) ? ' selected' : '';
     const typeVal = f.VoucherType || f.BPType || f.FAType || '';
-    const statusBadge = f.Status ? '<span class="lt-badge lt-badge-' + f.Status + '">' + f.Status + '</span>' : '';
-    const typeBadge = typeVal ? '<span class="lt-badge lt-badge-type">' + typeVal + '</span>' : '';
+    // 상태·유형·신청일은 값이 없어도 빈 칸으로 자리를 남긴다(행 간 세로 정렬 유지)
+    const statusBadge = '<span class="lt-badge lt-col-status ' + (f.Status ? 'lt-badge-' + f.Status : 'lt-badge-none') + '">' + (f.Status || '') + '</span>';
+    const typeBadge = '<span class="lt-badge lt-badge-type lt-col-type' + (typeVal ? '' : ' lt-badge-none') + '" title="' + (typeVal || '') + '">' + (typeVal || '') + '</span>';
     const dateVal = f.RequestDate || f.SubmittedDate;
-    const dateStr = dateVal ? '<span class="lt-date">신청일 ' + fmtDate(dateVal) + '</span>' : '';
+    const dateStr = '<span class="lt-date lt-col-date">' + (dateVal ? '신청일 ' + fmtDate(dateVal) : '') + '</span>';
     // ACC Voucher만 Posting 상태를 함께 표시. 판정 기준은 ACC 시스템과 동일하게 B1 Doc No. 유무.
     const isAcc = ltCurrentSys === 'ACC';
     const posted = isAcc && (f.B1DocNo || '').trim() !== '';
