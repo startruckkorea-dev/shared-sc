@@ -248,12 +248,15 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .lt-result-row:hover .lt-open-hint{opacity:1}
 #link-ticket-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;align-items:center;justify-content:center}
 #link-ticket-modal.open{display:flex}
-.lt-card{background:#fff;border-radius:12px;padding:22px 24px;width:520px;max-width:92vw;max-height:78vh;display:flex;flex-direction:column}
-.lt-tabs{display:flex;gap:6px;margin-bottom:12px}
+/* 목록을 한 번에 더 많이 보기 위해 세로를 넓힌다.
+   78vh → 92vh (위아래 4vh씩만 남김). .lt-results가 flex:1이라 늘어난 만큼 목록이 차지한다.
+   짧은 화면에서도 헤더·필터·페이지네이션이 눌리지 않도록 min-height는 두지 않는다. */
+.lt-card{background:#fff;border-radius:12px;padding:16px 22px 14px;width:520px;max-width:92vw;max-height:92vh;display:flex;flex-direction:column}
+.lt-tabs{display:flex;gap:6px;margin-bottom:9px}
 .lt-tab{flex:1;text-align:center;padding:7px 0;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;background:#f1f5f9;color:#64748b}
 .lt-tab.active{background:#0078d4;color:#fff}
 .lt-hint{font-size:.7rem;color:#94a3b8;margin-bottom:2px}
-.lt-hint2{font-size:.68rem;color:#b6c0cc;margin-bottom:8px}
+.lt-hint2{font-size:.68rem;color:#b6c0cc;margin-bottom:6px}
 /* 결과 목록: 각 항목을 독립된 카드로 분리해 경계를 명확히 한다.
    (예전엔 얇은 구분선만 있는 촘촘한 행이라 뱃지·날짜가 뒤엉켜 보였음) */
 .lt-results{overflow-y:auto;flex:1;padding:6px;background:#f8fafc;border:1px solid #e6ebf1;border-radius:8px}
@@ -2933,7 +2936,7 @@ function ltOpenRealDetail(sys, id) {
 
 <div id="link-ticket-modal" onclick="if(event.target===this) closeLinkTicketModal()">
   <div class="lt-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-size:.95rem;font-weight:700;color:#101B34">🔗 관련 티켓(ACC, BP, FA) 링크 추가</div>
       <div style="cursor:pointer;color:#94a3b8;font-size:1.1rem" onclick="closeLinkTicketModal()">✕</div>
     </div>
@@ -2966,7 +2969,7 @@ function ltOpenRealDetail(sys, id) {
     <div class="lt-statusrow" id="lt-status-row"></div>
     <div class="lt-statusrow" id="lt-posting-row"></div>
     <div class="lt-results" id="lt-results"><div class="lt-empty">불러오는 중...</div></div>
-    <div id="lt-pagination" style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;font-size:.78rem;color:#64748b"></div>
+    <div id="lt-pagination" style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:8px;font-size:.78rem;color:#64748b"></div>
     <div class="lt-actions">
       <span class="lt-selected-count" id="lt-selected-count">0개 선택됨</span>
       <button type="button" class="lt-insert-btn" id="lt-insert-btn" onclick="ltInsertSelected()" disabled>선택 항목 첨부</button>
