@@ -1606,7 +1606,8 @@ async function showDetail(reqId, fromTab) {
     }
 
     // 첨부파일
-    let filesHtml = '<div style="font-size:13px;color:#605e5c">첨부파일 없음</div>';
+    // 첨부가 없을 때는 「결재 이력이 없습니다.」와 같은 규칙(가운데 정렬 · 패딩)으로 표시한다.
+    let filesHtml = '<div style="padding:12px;text-align:center;color:#a19f9d;font-size:.78rem">첨부파일이 없습니다.</div>';
     if (f.AttachedFiles) {
       const fileEntries = f.AttachedFiles
         .replace(/&#58;/g,':').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/<[^>]*>/g,'')
