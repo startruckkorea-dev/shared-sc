@@ -1023,32 +1023,6 @@ function isAdmin() {
 // ══ Employee data ══
 // loadEmployees 제거 (1차 결재자 UI 삭제)
 
-function onDeptChange(idx) {
-  const dept = document.getElementById('a'+idx+'-dept').value;
-  const teamSel = document.getElementById('a'+idx+'-team');
-  const personSel = document.getElementById('a'+idx+'-person');
-  document.getElementById('a'+idx+'-name').value='';
-  document.getElementById('a'+idx+'-email').value='';
-  const teams=[...new Set(employeeData.filter(e=>e.dept===dept).map(e=>e.team))].sort();
-  teamSel.innerHTML='<option value="">팀</option>'+teams.map(t=>'<option>'+t+'</option>').join('');
-  teamSel.disabled=!dept; personSel.innerHTML='<option value="">직원 선택</option>'; personSel.disabled=true;
-}
-function onTeamChange(idx) {
-  const dept=document.getElementById('a'+idx+'-dept').value;
-  const team=document.getElementById('a'+idx+'-team').value;
-  const personSel=document.getElementById('a'+idx+'-person');
-  document.getElementById('a'+idx+'-name').value='';
-  document.getElementById('a'+idx+'-email').value='';
-  const persons=employeeData.filter(e=>e.dept===dept&&e.team===team);
-  personSel.innerHTML='<option value="">직원 선택</option>'+persons.map(p=>'<option value="'+p.email+'">'+p.name+'</option>').join('');
-  personSel.disabled=!team;
-}
-function onPersonChange(idx) {
-  const email=document.getElementById('a'+idx+'-person').value;
-  const person=employeeData.find(e=>e.email===email);
-  document.getElementById('a'+idx+'-name').value=person?person.name:'';
-  document.getElementById('a'+idx+'-email').value=person?person.email:'';
-}
 
 // ══ Form state ══
 function selectType(type, el) {
@@ -2908,9 +2882,6 @@ function ltDetailUrl(sys, id) {
 }
 // 검색 결과 클릭 시 간이 미리보기 대신 실제 FA/BP/ACC 시스템 상세보기를 새 탭에서 바로 열기
 // (해당 시스템은 이미 openId 단독보기 모드가 구현되어 있어, 그 상세팝업만 뜨고 다른 메뉴로는 못 감)
-function ltOpenRealDetail(sys, id) {
-  window.open(ltDetailUrl(sys, id), '_blank');
-}
 </script>
 <div id="lt-notice-modal" onclick="if(event.target===this) ltCloseNotice()">
   <div class="lt-confirm-box">
