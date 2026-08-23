@@ -1503,7 +1503,15 @@ async function showDetail(reqId, fromTab) {
         : '<div class="modal-row"><div class="modal-label">'+l+'</div><div class="modal-value">'+val+'</div></div>';
     };
 
-    const statusColor = f.Status==='승인완료'?'#107c10':f.Status==='반려'?'#a4262c':f.Status==='접수됨'?'#4338ca':'#7d5700';
+    // 상태 배지 — 목록과 같은 표기를 쓴다.
+    // 괄호가 포함된 상태값(철회(잠김))은 CSS 클래스로 쓸 수 없어 철회로 정규화하고,
+    // 승인은 승인완료로 매핑한다. (다른 시스템 상세보기와 동일한 처리)
+    const _stCls = (function(s){
+      const v = (s||'대기').trim();
+      if (v.indexOf('철회') === 0) return '철회';
+      if (v === '승인') return '승인완료';
+      return v;
+    })(f.Status);
 
     let html = sec('기본 정보') +
       row('티켓번호', f.Title||reqId) +
@@ -1511,7 +1519,7 @@ async function showDetail(reqId, fromTab) {
       row('유형', '<span class="badge badge-'+(f.TicketType||'')+'">'+(f.TicketType||'-')+'</span>') +
       row('요청 구분', f.SubType) +
       row('우선순위', '<span class="badge badge-'+(f.Priority||'')+'">'+f.Priority+'</span>') +
-      row('상태', '<span style="font-weight:600;color:'+statusColor+'">'+f.Status+'</span>') +
+      row('상태', '<span class="badge badge-'+_stCls+'">'+(f.Status||'대기')+'</span>') +
       row('등록일', fmtDate(f.RequestDate)) +
       (f.AcceptedDate ? row('접수일', fmtDate(f.AcceptedDate)) : '') +
       (f.CompletedDate ? row('처리 완료일', fmtDate(f.CompletedDate)) : '');
