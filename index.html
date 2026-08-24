@@ -2331,7 +2331,8 @@ let _ltAllItems = [];
 const LT_PAGE_SIZE = 15;  // 카드 높이를 줄인 만큼 한 페이지에 더 담는다
 let _ltPage = 1;
 let _ltReqToken = 0;
-let _ltMineOnly = true;              // "내 결재건" — 기본 체크(결재 권한자 기준)
+let _ltMineOnly = true;              // "내 결재건" — 내가 결재했거나 내가 신청한 건
+function _ltMyEmail(){ return (user?.email || user?.username || '').trim().toLowerCase(); }
 let _ltMineTouched = false;         // 사용자가 직접 켜고 끈 적이 있는지
 let _ltAccOnly = false;             // "ACC팀 결재건"
 const _ltApprCache = {};            // sys -> {mine:Set, acc:Set}  (탭별 1회만 조회)
@@ -2445,7 +2446,10 @@ function ltStatusBaseItems() {
     const idx = _ltApprCache[ltCurrentSys];
     if (idx) base = base.filter(it => {
       const rid = String(it.id);
-      return (_ltMineOnly && idx.mine.has(rid)) || (_ltAccOnly && idx.acc.has(rid));
+      // "내 결재건" 은 내가 결재한 건뿐 아니라 내가 신청한 건도 포함한다.
+      // 결재 이력(Approvals)만 보면 내가 올린 티켓이 빠져 링크할 수 없었다.
+      const _mineReq = (it.fields.RequesterEmail || '').trim().toLowerCase() === _ltMyEmail();
+      return (_ltMineOnly && (idx.mine.has(rid) || _mineReq)) || (_ltAccOnly && idx.acc.has(rid));
     });
   }
   return base;
@@ -2645,10 +2649,11 @@ async function ltLoadList() {
       if (myToken !== _ltReqToken) return;
       items = items.filter(it => {
         const rid = String(it.id);
-        return (_ltMineOnly && idx.mine.has(rid)) || (_ltAccOnly && idx.acc.has(rid));
+        const _mineReq = (it.fields.RequesterEmail || '').trim().toLowerCase() === _ltMyEmail();
+        return (_ltMineOnly && (idx.mine.has(rid) || _mineReq)) || (_ltAccOnly && idx.acc.has(rid));
       });
-      apprFilterLabel = (_ltMineOnly && _ltAccOnly) ? '내 결재건 + ACC팀 결재건이 표시됩니다'
-        : _ltMineOnly ? '내가 승인·반려 처리한 티켓만 표시됩니다'
+      apprFilterLabel = (_ltMineOnly && _ltAccOnly) ? '내 신청·결재건 + ACC팀 결재건이 표시됩니다'
+        : _ltMineOnly ? '내가 신청했거나 승인·반려 처리한 티켓만 표시됩니다'
         : 'ACC팀(회계담당) 결재를 거친 티켓만 표시됩니다';
       // 세대 목록을 못 읽었으면 옛 세대만 훑은 것이라 결과가 빠져 있을 수 있다 — 반드시 알린다
       if (ltCurrentSys === 'ACC' && _ltAccVolIncomplete) {
@@ -2930,7 +2935,7 @@ function ltDetailUrl(sys, id) {
     <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
       <input type="text" id="lt-search-input" placeholder="제목, 신청자로 검색..." oninput="ltRenderStatusChips();ltRenderPostingChips();ltRenderPage(1)" style="flex:1;min-width:0;padding:6px 10px;border:1px solid #d0d7de;border-radius:7px;font-size:.76rem;font-family:inherit">
       <label class="lt-filter-chip" title="내가 결재자로서 승인·반려 처리한 건">
-        <input type="checkbox" id="lt-mine-only" checked onchange="ltToggleMineOnly()">내 결재건
+        <input type="checkbox" id="lt-mine-only" checked onchange="ltToggleMineOnly()">내 신청·결재건
       </label>
       <label class="lt-filter-chip" title="회계담당자 역할의 결재를 거친 건 (담당자 무관)">
         <input type="checkbox" id="lt-acc-only" onchange="ltToggleMineOnly()">ACC팀 결재건
