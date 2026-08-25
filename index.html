@@ -8,6 +8,23 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
+
+// 결재 의견은 사용자가 직접 입력하는 자유 텍스트라 그대로 출력하면 저장형 XSS 가 된다.
+// SharePoint 다중 텍스트는 <div class="ExternalClass..."> 래퍼와 숫자 엔티티를 붙여 저장하므로
+// spText 로 걷어낸 뒤 escHtml 로 이스케이프한다. (mc 의 검증된 구현을 이식)
+function escHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function spText(s){
+  return String(s==null?'':s)
+    .replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<[^>]*>/g,'')
+    .replace(/&nbsp;/gi,' ')
+    .replace(/&#(\d+);/g,function(m,d){var n=parseInt(d,10);return (n>=32&&n<=1114111)?String.fromCodePoint(n):m;})
+    .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")
+    .replace(/&amp;/g,'&').replace(/\n{3,}/g,'\n\n').trim();
+}
+function safeText(s){ return escHtml(spText(s)); }
 (function(){
   var l=document.createElement('link');
   l.rel='icon'; l.type='image/webp';
@@ -1650,7 +1667,7 @@ async function showDetail(reqId, fromTab) {
               '<div><div style="font-weight:600;font-size:13px">'+af.ApprovalOrder+'차 처리자 ('+af.ApproverRole+')</div>'+
               '<div style="font-size:12px;color:#605e5c;margin-top:2px">'+(af.ApproverName||'')+' · '+(af.ApproverEmail||'')+'</div>'+
               (af.ApprovalDate?'<div style="font-size:11px;color:#a19f9d;margin-top:2px">'+fmtDate(af.ApprovalDate)+'</div>':'')+
-              (af.Comment?'<div style="margin-top:4px;background:#fff;border:1px solid #edebe9;border-radius:4px;padding:4px 8px;font-size:12px;color:#605e5c">💬 '+af.Comment+'</div>':'')+
+              (af.Comment?'<div style="margin-top:4px;background:#fff;border:1px solid #edebe9;border-radius:4px;padding:4px 8px;font-size:12px;color:#605e5c">💬 '+safeText(af.Comment)+'</div>':'')+
               '</div><span style="color:'+(sc[af.Status]||'#323130')+';font-weight:700;font-size:12px;white-space:nowrap;margin-left:8px">'+(af.Status||'')+'</span></div>';
           }).join('')+'</div>';
 
