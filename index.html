@@ -1411,6 +1411,8 @@ function sscRelatedTo(f, email) {
   return (f._line || []).some(a => (a.email || '') === email);
 }
 function sscIsRelated(f) { return !_sscQuickView ? true : sscRelatedTo(f, _sscQuickView); }
+// 지금 고른 담당자가 결재할 차례인 건.
+// 남의 칩을 볼 때도 그 담당자 기준이라, 「그 사람이 처리할 건」이 맨 위로 온다.
 function sscIsMyTurn(f) { return !!_sscQuickView && !!f && (f._curEmail || '') === _sscQuickView; }
 
 // 정렬 우선순위 — 처리할 차례가 맨 위, 그다음 진행 중, 끝난 건은 아래로.
