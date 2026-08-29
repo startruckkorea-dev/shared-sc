@@ -161,6 +161,10 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .btn-secondary:hover { background: #f3f2f1; }
 
 /* ── Table ── */
+@keyframes sscSpin { to { transform: rotate(360deg); } }
+#admin-refresh-ico.spin { animation: sscSpin .8s linear infinite; }
+#admin-refresh:hover { background:#f3f2f1; }
+#admin-refresh:disabled { opacity:.6; cursor:default; }
 .list-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .list-table th { padding: 9px 12px; text-align: left; background: #f3f2f1; border-bottom: 1px solid #edebe9; font-weight: 600; color: #323130; font-size: .75rem; white-space: nowrap; }
 .list-table td { padding: 9px 12px; border-bottom: 1px solid #edebe9; color: #323130; white-space: nowrap; }
@@ -1344,6 +1348,147 @@ async function refreshApprBadge() {
 }
 
 // ══ Admin list ══
+// ── 관리자 빠른 보기 ───────────────────────────────────────────────────
+// 담당자가 자기 결재 건과 자기가 올린 건을 따로 볼 방법이 없어
+// 관리자 탭을 새로고침하며 눈으로 찾아야 했다. 담당자별 칩으로 걸러 본다.
+// SHARED-SC_ADMIN_1~6 이 담당자, _7 은 IT 로 전원 열람이 가능하다.
+const SSC_ROLE_KEYS = [
+  ['SHARED-SC_ADMIN_1', '#0f766e'],
+  ['SHARED-SC_ADMIN_2', '#7c3aed'],
+  ['SHARED-SC_ADMIN_3', '#b45309'],
+  ['SHARED-SC_ADMIN_4', '#0078d4'],
+  ['SHARED-SC_ADMIN_5', '#a4262c'],
+  ['SHARED-SC_ADMIN_6', '#0891b2'],
+];
+const SSC_IT_KEY = 'SHARED-SC_ADMIN_7';
+
+let _sscQuickView = '';   // 지금 보고 있는 담당자 이메일 (빈 값이면 전체)
+let _sscReloading = false;
+
+function sscCfg(key) { return (_sysConfig && _sysConfig[key]) || null; }
+function sscRoleEmail(key) { const v = sscCfg(key); return ((v && v.email) || '').trim().toLowerCase(); }
+function sscRoleName(key) {
+  const v = sscCfg(key); if (!v) return '';
+  return ((v.name || '').trim()) || ((v.email || '').split('@')[0]);
+}
+// 이 사용자가 담당자인지 · IT 인지
+function sscMyRoleKey() {
+  const me = (user?.email || user?.username || '').trim().toLowerCase();
+  if (!me) return null;
+  const hit = SSC_ROLE_KEYS.find(([k]) => sscRoleEmail(k) === me);
+  return hit ? hit[0] : null;
+}
+function _sscIsIt() {
+  const me = (user?.email || user?.username || '').trim().toLowerCase();
+  return !!me && sscRoleEmail(SSC_IT_KEY) === me;
+}
+
+// 특정 이메일과 관련된 티켓인지 — 그 사람이 올렸거나 결재선에 있는 것.
+function sscRelatedTo(f, email) {
+  if (!email || !f) return false;
+  if ((f.RequesterEmail || '').trim().toLowerCase() === email) return true;
+  return (f._line || []).some(a => (a.email || '') === email);
+}
+function sscIsRelated(f) { return !_sscQuickView ? true : sscRelatedTo(f, _sscQuickView); }
+function sscIsMyTurn(f) { return !!_sscQuickView && (f._curEmail || '') === _sscQuickView; }
+
+// 정렬 우선순위 — 처리할 차례가 맨 위, 그다음 진행 중, 끝난 건은 아래로.
+function sscRelatedRank(f) {
+  if (sscIsMyTurn(f)) return 0;
+  const st = (f.Status || '').trim();
+  if (st === '대기') return 1;
+  return 2;
+}
+
+async function sscSetQuickView(email) {
+  const me = (user?.email || user?.username || '').trim().toLowerCase();
+  // 칩은 담당자 전원이 보이지만, 열어 볼 수 있는 건 본인 것뿐이다.
+  // 이미 관리자 탭에 들어온 사람이라 「권한 없음」은 맞지 않다.
+  if (email && email !== me && !_sscIsIt()) {
+    const key = SSC_ROLE_KEYS.find(([k]) => sscRoleEmail(k) === email);
+    alert('Personal view\n\n'
+        + (key ? sscRoleName(key[0]) : email) + '\n\n'
+        + "This shortcut opens that person's own queue, so it is available to them only.\n\n"
+        + 'You can still review every ticket in the table below —\n'
+        + 'use the status, type, or keyword filters to narrow it down.');
+    return;
+  }
+  _sscQuickView = (_sscQuickView === email) ? '' : email;
+  await sscReloadAdmin();
+}
+
+// 목록을 다시 읽고 화면을 갱신한다. 진행 중에는 버튼과 칩을 잠가 연타를 막는다.
+async function sscReloadAdmin() {
+  if (_sscReloading) return;
+  _sscReloading = true;
+  const bar = document.getElementById('ssc-quick-bar');
+  const btn = document.getElementById('admin-refresh');
+  const ico = document.getElementById('admin-refresh-ico');
+  if (bar) { bar.style.opacity = '.55'; bar.style.pointerEvents = 'none'; }
+  if (btn) btn.disabled = true;
+  if (ico) ico.classList.add('spin');
+  try {
+    _adminCache = [];          // 서버에서 다시 읽는다
+    await loadAdminList();
+  } catch(e) {
+    console.warn('[관리자] 새로고침 실패:', e && e.message);
+  } finally {
+    _sscReloading = false;
+    const b2 = document.getElementById('ssc-quick-bar');
+    const t2 = document.getElementById('admin-refresh');
+    const i2 = document.getElementById('admin-refresh-ico');
+    if (b2) { b2.style.opacity = ''; b2.style.pointerEvents = ''; }
+    if (t2) t2.disabled = false;
+    if (i2) i2.classList.remove('spin');
+  }
+}
+
+function sscRenderQuickBar(items) {
+  const bar = document.getElementById('ssc-quick-bar');
+  if (!bar) return;
+  const me = (user?.email || user?.username || '').trim().toLowerCase();
+  const isIt = _sscIsIt();
+  // 담당자도 IT 도 아니면 바를 숨긴다.
+  if (!isIt && !sscMyRoleKey()) { bar.style.display = 'none'; return; }
+
+  const rows = items || [];
+  const chip = ([key, color]) => {
+    const email = sscRoleEmail(key);
+    if (!email) return '';
+    const who = sscRoleName(key);
+    const allow = isIt || email === me;
+    const on = _sscQuickView === email;
+    const rel = rows.filter(f => sscRelatedTo(f, email));
+    const todo = rel.filter(f => (f._curEmail || '') === email).length;
+    return '<button onclick="sscSetQuickView(\'' + email + '\')" title="' + esc(who) + '"'
+      + ' style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 11px;border-radius:18px;'
+      + 'cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .14s;'
+      + (on    ? 'background:' + color + ';border:1px solid ' + color + ';box-shadow:0 2px 6px ' + color + '40'
+       : allow ? 'background:#fff;border:1px solid #e2e8f0'
+               : 'background:#fff;border:1px solid #eef2f6;opacity:.62')
+      + '">'
+      + '<span style="font-size:.74rem;font-weight:600;' + (on ? 'color:#fff' : 'color:#334155') + '">' + esc(who) + '</span>'
+      + '<span style="font-size:.72rem;font-weight:700;' + (on ? 'color:rgba(255,255,255,.85)' : 'color:#94a3b8') + '">' + rel.length + '</span>'
+      + (todo
+          ? '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;'
+            + 'border-radius:9px;font-size:.61rem;font-weight:800;'
+            + (on ? 'background:rgba(255,255,255,.9);color:' + color : 'background:#fff4e5;color:#b45309')
+            + '">' + todo + '</span>'
+          : '')
+      + '</button>';
+  };
+
+  bar.style.display = 'flex';
+  bar.innerHTML =
+      '<span style="font-size:.68rem;color:#b6c2cf;font-weight:700;letter-spacing:.6px;white-space:nowrap">SSC TEAM</span>'
+    + '<span style="width:1px;height:15px;background:#e8edf2"></span>'
+    + SSC_ROLE_KEYS.map(chip).join('')
+    + (_sscQuickView
+        ? '<button onclick="sscSetQuickView(\'\')" style="background:none;border:none;color:#94a3b8;'
+          + 'font-size:.71rem;cursor:pointer;font-family:inherit;padding:4px 8px">Show all</button>'
+        : '');
+}
+
 async function loadAdminList() {
   if (!siteId) return;
   dynLoad(true,'티켓 목록 불러오는 중');
@@ -1352,10 +1497,37 @@ async function loadAdminList() {
   const filterSearch=((document.getElementById('admin-filter-search')||{value:''}).value||'').toLowerCase();
   try {
     if (!_adminCache.length) {
-      const d=await apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
+      // 티켓과 결재선을 동시에 읽는다. 순서대로 기다리면 그만큼 두 배로 걸린다.
+      const [d, apr] = await Promise.all([
+        apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500'),
+        apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields&$top=999')
+          .catch(e => { console.warn('[관리자] 결재 정보 조회 실패:', e && e.message); return {value:[]}; }),
+      ]);
+      // 담당자별 빠른 보기에서 「누가 결재선에 있는지」와 「지금 누구 차례인지」를 판단하는 데 쓴다.
+      const byReq = {};
+      (apr.value||[]).forEach(i => {
+        const f2 = i.fields, rid = String(f2.RequestID);
+        (byReq[rid] = byReq[rid] || []).push({
+          order : f2.ApprovalOrder || 0,
+          email : (f2.ApproverEmail || '').toLowerCase(),
+          status: ((f2.Status && f2.Status.Value) ? f2.Status.Value : f2.Status || '').trim(),
+        });
+      });
+      d.value.forEach(it => {
+        const line = (byReq[String(it.id)] || []).sort((a,b)=>a.order-b.order);
+        it.fields._line = line;
+        const cur = line.find(a => a.status === '대기');
+        it.fields._curEmail = cur ? cur.email : '';
+      });
       _adminCache=d.value.sort((a,b)=>new Date(b.fields.RequestDate)-new Date(a.fields.RequestDate));
     }
+    sscRenderQuickBar(_adminCache.map(i=>i.fields));
     let items=_adminCache;
+    // 담당자 빠른 보기 — 고른 담당자와 관련된 티켓만, 처리할 차례가 맨 위
+    if(_sscQuickView){
+      items=items.filter(i=>sscIsRelated(i.fields))
+                 .sort((a,b)=>sscRelatedRank(a.fields)-sscRelatedRank(b.fields));
+    }
     if(filterStatus) items=items.filter(i=>i.fields.Status===filterStatus);
     if(filterType)   items=items.filter(i=>i.fields.TicketType===filterType);
     if(filterSearch) items=items.filter(i=>(i.fields.RequesterEmail||'').toLowerCase().includes(filterSearch)||(i.fields.TicketTitle||i.fields.Title||'').toLowerCase().includes(filterSearch));
