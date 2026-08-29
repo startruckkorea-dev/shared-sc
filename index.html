@@ -628,6 +628,8 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
   <!-- ══ TAB: 관리자 ══ -->
   <div id="tab-admin" style="display:none">
     <div class="card">
+      <!-- SSC 담당자 빠른 보기 — SHARED-SC_ADMIN_1~6 담당자와 _7(IT)에게만 보인다 -->
+      <div id="ssc-quick-bar" style="display:none;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:12px;padding:9px 13px;background:#fcfdfe;border:1px solid #eef2f6;border-radius:10px"></div>
       <div class="filter-bar">
         <select id="admin-filter-status" onchange="loadAdminList()">
           <option value="">전체 상태</option>
@@ -639,6 +641,10 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
         </select>
         <input type="text" id="admin-filter-search" oninput="loadAdminList()" placeholder="신청자 / 제목 검색...">
         <span id="admin-count" style="font-size:13px;color:#605e5c;margin-left:auto"></span>
+        <button id="admin-refresh" onclick="sscReloadAdmin()" title="목록을 다시 불러옵니다. 지금 고른 담당자·필터는 그대로 유지됩니다."
+          style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:#fff;color:#605e5c;border:1px solid #d2d0ce;border-radius:4px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit">
+          <span id="admin-refresh-ico" style="display:inline-block;font-size:14px;line-height:1">↻</span>새로고침
+        </button>
         <button onclick="exportAdminExcel()" style="padding:6px 14px;background:#107c10;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit">📊 Excel 내보내기</button>
       </div>
       <table class="list-table">
