@@ -53,6 +53,9 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 
 /* ── App shell ── */
 #app { display: none; max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+/* 관리자 탭은 열이 많아 860px 로는 우측이 잘린다. 이 탭을 볼 때만 넓힌다.
+   다른 탭은 읽기 편한 폭을 그대로 유지한다. */
+#app.wide { max-width: 1280px; }
 .header { background: #fff; border-radius: 6px; padding: 16px 24px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #edebe9; }
 .header .title { font-size: 18px; font-weight: 600; color: #323130; }
 .header-right { font-size: 13px; color: #605e5c; display: flex; align-items: center; gap: 12px; }
@@ -647,18 +650,19 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
         </button>
         <button onclick="exportAdminExcel()" style="padding:6px 14px;background:#107c10;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit">📊 Excel 내보내기</button>
       </div>
+      <div style="overflow-x:auto">
       <table class="list-table">
         <thead><tr>
-          <th style="width:48px">번호</th>
-          <th style="width:150px">신청자</th>
-          <th style="width:190px">Title</th>
-          <th style="width:52px">유형</th>
-          <th>제목</th>
-          <th style="width:130px">요청구분</th>
-          <th style="width:130px">PKF담당자</th>
-          <th style="width:74px">우선순위</th>
-          <th style="width:80px">상태</th>
-          <th style="width:120px">등록일</th>
+          <th style="width:42px">번호</th>
+          <th style="width:130px">신청자</th>
+          <th style="width:158px">Title</th>
+          <th style="width:46px">유형</th>
+          <th style="min-width:190px">제목</th>
+          <th style="width:118px">요청구분</th>
+          <th style="width:118px">PKF담당자</th>
+          <th style="width:64px">우선순위</th>
+          <th style="width:72px">상태</th>
+          <th style="width:108px">등록일</th>
         </tr></thead>
         <tbody id="admin-body">
           <tr><td colspan="10" style="text-align:center;padding:32px;color:#605e5c">
@@ -666,6 +670,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
           </td></tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </div><!-- /app -->
@@ -1278,6 +1283,7 @@ function switchTab(name) {
   document.getElementById('app').style.maxWidth = wide ? '1200px' : '860px';
   if(name==='list')     loadMyList();
   if(name==='approval') loadApprovalQueue();
+  document.getElementById('app').classList.toggle('wide', name==='admin');
   if(name==='admin')    { _adminCache=[]; loadAdminList(); }
   if(name==='history')  loadHistoryList();
 }
