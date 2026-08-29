@@ -643,10 +643,19 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       </div>
       <table class="list-table">
         <thead><tr>
-          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>PKF담당자</th><th>우선순위</th><th>상태</th><th>등록일</th>
+          <th style="width:48px">번호</th>
+          <th style="width:150px">신청자</th>
+          <th style="width:190px">Title</th>
+          <th style="width:52px">유형</th>
+          <th>제목</th>
+          <th style="width:130px">요청구분</th>
+          <th style="width:130px">PKF담당자</th>
+          <th style="width:74px">우선순위</th>
+          <th style="width:80px">상태</th>
+          <th style="width:120px">등록일</th>
         </tr></thead>
         <tbody id="admin-body">
-          <tr><td colspan="8" style="text-align:center;padding:32px;color:#605e5c">
+          <tr><td colspan="10" style="text-align:center;padding:32px;color:#605e5c">
             <div class="dyn-dots" style="justify-content:center"><span></span><span></span><span></span></div>
           </td></tr>
         </tbody>
@@ -1541,14 +1550,17 @@ async function loadAdminList() {
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'')+'</td>'+
         '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.TicketType||'')+'">'+( f.TicketType||'-')+'</span></td>'+
-        '<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
+        // 상세보기의 「제목」과 같은 값. 목록에서 무슨 건인지 바로 알 수 있게 한다.
+        '<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(stripHtml(f.TicketTitle||f.Title||''))+'">'
+          +(esc(stripHtml(f.TicketTitle||''))||'-')+'</td>'+
+        '<td style="font-size:12px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
         '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(apkf||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
         '<td><span class="badge badge-'+(f.Status||'대기')+'">'+(f.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(f.RequestDate)+'</td>'+
       '</tr>';
-    },'조회 결과가 없습니다.',9);
-  } catch(e){ dynLoad(false); document.getElementById('admin-body').innerHTML='<tr><td colspan="8" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
+    },'조회 결과가 없습니다.',10);
+  } catch(e){ dynLoad(false); document.getElementById('admin-body').innerHTML='<tr><td colspan="10" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
 }
 
 async function exportAdminExcel(){
