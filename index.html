@@ -1476,14 +1476,14 @@ function sscRenderQuickBar(items) {
     const on = _sscQuickView === email;
     const rel = rows.filter(f => sscRelatedTo(f, email));
     const todo = rel.filter(f => (f._curEmail || '') === email).length;
-    return '<button onclick="sscSetQuickView(\'' + email + '\')" title="' + esc(who) + '"'
+    return '<button onclick="sscSetQuickView(\'' + email + '\')" title="' + escHtml(who) + '"'
       + ' style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 11px;border-radius:18px;'
       + 'cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .14s;'
       + (on    ? 'background:' + color + ';border:1px solid ' + color + ';box-shadow:0 2px 6px ' + color + '40'
        : allow ? 'background:#fff;border:1px solid #e2e8f0'
                : 'background:#fff;border:1px solid #eef2f6;opacity:.62')
       + '">'
-      + '<span style="font-size:.74rem;font-weight:600;' + (on ? 'color:#fff' : 'color:#334155') + '">' + esc(who) + '</span>'
+      + '<span style="font-size:.74rem;font-weight:600;' + (on ? 'color:#fff' : 'color:#334155') + '">' + escHtml(who) + '</span>'
       + '<span style="font-size:.72rem;font-weight:700;' + (on ? 'color:rgba(255,255,255,.85)' : 'color:#94a3b8') + '">' + rel.length + '</span>'
       + (todo
           ? '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;'
@@ -1558,8 +1558,8 @@ async function loadAdminList() {
         '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.TicketType||'')+'">'+( f.TicketType||'-')+'</span></td>'+
         // 상세보기의 「제목」과 같은 값. 목록에서 무슨 건인지 바로 알 수 있게 한다.
-        '<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(stripHtml(f.TicketTitle||f.Title||''))+'">'
-          +(esc(stripHtml(f.TicketTitle||''))||'-')+'</td>'+
+        '<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(stripHtml(f.TicketTitle||f.Title||''))+'">'
+          +(escHtml(stripHtml(f.TicketTitle||''))||'-')+'</td>'+
         '<td style="font-size:12px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
         '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(apkf||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
