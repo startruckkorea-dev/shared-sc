@@ -1423,18 +1423,8 @@ function sscRelatedRank(f) {
 }
 
 async function sscSetQuickView(email) {
-  const me = (user?.email || user?.username || '').trim().toLowerCase();
-  // 칩은 담당자 전원이 보이지만, 열어 볼 수 있는 건 본인 것뿐이다.
-  // 이미 관리자 탭에 들어온 사람이라 「권한 없음」은 맞지 않다.
-  if (email && email !== me && !_sscIsIt()) {
-    const key = SSC_ROLE_KEYS.find(([k]) => sscRoleEmail(k) === email);
-    alert('Personal view\n\n'
-        + (key ? sscRoleName(key[0]) : email) + '\n\n'
-        + "This shortcut opens that person's own queue, so it is available to them only.\n\n"
-        + 'You can still review every ticket in the table below —\n'
-        + 'use the status, type, or keyword filters to narrow it down.');
-    return;
-  }
+  // 담당자 칩은 누구나 눌러 볼 수 있다. 관리자 탭에 들어온 사람은
+  // 어차피 아래 표에서 모든 티켓을 볼 수 있으므로 따로 막을 이유가 없다.
   _sscQuickView = (_sscQuickView === email) ? '' : email;
   await sscReloadAdmin();
 }
@@ -1478,16 +1468,14 @@ function sscRenderQuickBar(items) {
     const email = sscRoleEmail(key);
     if (!email) return '';
     const who = sscRoleName(key);
-    const allow = isIt || email === me;
     const on = _sscQuickView === email;
     const rel = rows.filter(f => sscRelatedTo(f, email));
     const todo = rel.filter(f => (f._curEmail || '') === email).length;
     return '<button onclick="sscSetQuickView(\'' + email + '\')" title="' + escHtml(who) + '"'
       + ' style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 11px;border-radius:18px;'
       + 'cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .14s;'
-      + (on    ? 'background:' + color + ';border:1px solid ' + color + ';box-shadow:0 2px 6px ' + color + '40'
-       : allow ? 'background:#fff;border:1px solid #e2e8f0'
-               : 'background:#fff;border:1px solid #eef2f6;opacity:.62')
+      + (on ? 'background:' + color + ';border:1px solid ' + color + ';box-shadow:0 2px 6px ' + color + '40'
+            : 'background:#fff;border:1px solid #e2e8f0')
       + '">'
       + '<span style="font-size:.74rem;font-weight:600;' + (on ? 'color:#fff' : 'color:#334155') + '">' + escHtml(who) + '</span>'
       + '<span style="font-size:.72rem;font-weight:700;' + (on ? 'color:rgba(255,255,255,.85)' : 'color:#94a3b8') + '">' + rel.length + '</span>'
