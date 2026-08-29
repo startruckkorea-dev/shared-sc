@@ -1405,10 +1405,11 @@ function sscRelatedTo(f, email) {
   return (f._line || []).some(a => (a.email || '') === email);
 }
 function sscIsRelated(f) { return !_sscQuickView ? true : sscRelatedTo(f, _sscQuickView); }
-function sscIsMyTurn(f) { return !!_sscQuickView && (f._curEmail || '') === _sscQuickView; }
+function sscIsMyTurn(f) { return !!_sscQuickView && !!f && (f._curEmail || '') === _sscQuickView; }
 
 // 정렬 우선순위 — 처리할 차례가 맨 위, 그다음 진행 중, 끝난 건은 아래로.
 function sscRelatedRank(f) {
+  if (!f) return 2;   // fields 가 없는 항목은 맨 뒤로. 여기서 멈추면 목록 전체가 안 나온다.
   if (sscIsMyTurn(f)) return 0;
   const st = (f.Status || '').trim();
   if (st === '대기') return 1;
