@@ -1640,11 +1640,11 @@ async function loadAdminList() {
         // 말줄임과 글자 크기는 #tab-* .list-table td 규칙이 한 곳에서 담당한다.
         '<td style="text-align:center;color:#a19f9d">'+(total-idx)+'</td>'+
         '<td style="color:#605e5c" title="'+escHtml(f.RequesterEmail||'')+'">'+escHtml(f.RequesterEmail||'')+'</td>'+
-        '<td title="'+escHtml(f.Title||'')+'">'+escHtml(f.Title||'-')+'</td>'+
+        '<td title="'+escHtml(cellText(f.Title))+'">'+(escHtml(cellText(f.Title))||'-')+'</td>'+
         '<td style="text-align:center"><span class="badge badge-'+escHtml(f.TicketType||'')+'">'+escHtml(f.TicketType||'-')+'</span></td>'+
         // 상세보기의 「제목」과 같은 값. 목록에서 무슨 건인지 바로 알 수 있게 한다.
-        '<td title="'+escHtml(stripHtml(f.TicketTitle||f.Title||''))+'">'
-          +(escHtml(stripHtml(f.TicketTitle||''))||'-')+'</td>'+
+        '<td title="'+escHtml(cellText(f.TicketTitle||f.Title))+'">'
+          +(escHtml(cellText(f.TicketTitle))||'-')+'</td>'+
         '<td title="'+escHtml(cellText(f.SubType))+'">'+(escHtml(cellText(f.SubType))||'-')+'</td>'+
         '<td title="'+escHtml(cellText(apkf))+'">'+(escHtml(cellText(apkf))||'-')+'</td>'+
         '<td style="text-align:center"><span class="badge badge-'+escHtml(f.Priority||'')+'">'+escHtml(f.Priority||'-')+'</span></td>'+
@@ -1785,7 +1785,18 @@ async function loadHistoryList() {
 // 예전 자료에는 후행 구분자나 빈 항목이 섞여 「Vendor Posting Request, 」 처럼 남기도 한다.
 // 화면에서는 이런 꼬리를 떼고, 구분자 간격도 하나로 맞춘다.
 function cellText(v){
-  return String(v == null ? '' : v)
+  // SharePoint 「여러 줄 텍스트」 컬럼은 값을 <div class="ExternalClassXXXX">…</div> 로
+  // 감싸 돌려주고 &amp; 같은 엔티티로 저장한다. 껍데기를 먼저 벗기지 않고 escHtml 을
+  // 태우면 태그가 화면에 글자로 그대로 나온다(3cd75b6 에서 실제로 그렇게 됐다).
+  //   순서가 중요하다 — ① 태그·엔티티 제거(stripHtml) ② 구분자 정리 ③ 호출부에서 escHtml
+  // <br>·</div> 는 목록 한 줄짜리 셀이라 공백으로 바꿔 단어가 붙지 않게 한다.
+  return stripHtml(
+      String(v == null ? '' : v)
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/<\/(div|p|li)>/gi, ' ')
+    )
+    .replace(/&#(\d+);/g, (m, d) => String.fromCharCode(Number(d)))
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/\s*[;,]\s*/g, ', ')   // 구분자를 ', ' 하나로
     .replace(/(?:,\s*)+$/, '')       // 후행 구분자 제거
     .replace(/\s{2,}/g, ' ')
