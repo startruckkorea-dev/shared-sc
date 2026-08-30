@@ -709,8 +709,8 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
           <th style="width:104px">신청자</th>
           <th style="width:164px">Title</th>
           <th style="width:44px;text-align:center">유형</th>
-          <th style="width:296px">제목</th>
-          <th style="width:130px">요청구분</th>
+          <th style="width:280px">제목</th>
+          <th style="width:146px">요청구분</th>
           <th style="width:118px">PKF담당자</th>
           <th style="width:62px;text-align:center">우선순위</th>
           <th style="width:68px;text-align:center">상태</th>
@@ -1373,14 +1373,15 @@ async function loadMyList() {
       const f = item.fields, total = mine.length;
       const lpkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+item.id+',\'list\')" style="cursor:pointer">'+
-        '<td style="text-align:center">'+(total-idx)+'</td>'+
-        '<td style="font-size:12px;color:#605e5c;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'-')+'</td>'+
-        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
-        '<td><span class="badge badge-'+f.TicketType+'">'+f.TicketType+'</span></td>'+
-        '<td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
-        '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(lpkf||'-')+'</td>'+
-        '<td><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
-        '<td><span class="badge badge-'+(f.Status||'대기')+'">'+(f.Status||'-')+'</span></td>'+
+        // 폭은 헤더가 정한다. 본문에 max-width 를 또 두면 두 값이 어긋나 말줄임이 나오지 않는다.
+        '<td style="text-align:center;color:#a19f9d">'+(total-idx)+'</td>'+
+        '<td style="color:#605e5c" title="'+escHtml(f.RequesterEmail||'')+'">'+escHtml(f.RequesterEmail||'-')+'</td>'+
+        '<td title="'+escHtml(f.Title||'')+'">'+escHtml(f.Title||'-')+'</td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(f.TicketType||'')+'">'+escHtml(f.TicketType||'-')+'</span></td>'+
+        '<td title="'+escHtml(cellText(f.SubType))+'">'+(escHtml(cellText(f.SubType))||'-')+'</td>'+
+        '<td title="'+escHtml(cellText(lpkf))+'">'+(escHtml(cellText(lpkf))||'-')+'</td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(f.Priority||'')+'">'+escHtml(f.Priority||'-')+'</span></td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(f.Status||'대기')+'">'+escHtml(f.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(f.RequestDate)+'</td>'+
         '<td style="text-align:center">'+wdBtn(item.id, f.Status)+'</td>'+
       '</tr>';
@@ -1409,13 +1410,13 @@ async function loadApprovalQueue() {
       const pkfNames=stripHtml(rf.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+f.RequestID+',\'appr\')" style="cursor:pointer">'+
         '<td style="color:#0078d4;text-align:center">'+(total-idx)+'</td>'+
-        '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'')+'</td>'+
-        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.Title||'-')+'</td>'+
-        '<td><span class="badge badge-'+(rf.TicketType||'')+'">'+( rf.TicketType||'-')+'</span></td>'+
-        '<td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.SubType||'-')+'</td>'+
-        '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(pkfNames||'-')+'</td>'+
-        '<td><span class="badge badge-'+(rf.Priority||'')+'">'+(rf.Priority||'-')+'</span></td>'+
-        '<td><span class="badge badge-'+(rf.Status||'대기')+'">'+(rf.Status||'-')+'</span></td>'+
+        '<td style="color:#605e5c" title="'+escHtml(rf.RequesterEmail||'')+'">'+escHtml(rf.RequesterEmail||'-')+'</td>'+
+        '<td title="'+escHtml(rf.Title||'')+'">'+escHtml(rf.Title||'-')+'</td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(rf.TicketType||'')+'">'+escHtml(rf.TicketType||'-')+'</span></td>'+
+        '<td title="'+escHtml(cellText(rf.SubType))+'">'+(escHtml(cellText(rf.SubType))||'-')+'</td>'+
+        '<td title="'+escHtml(cellText(pkfNames))+'">'+(escHtml(cellText(pkfNames))||'-')+'</td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(rf.Priority||'')+'">'+escHtml(rf.Priority||'-')+'</span></td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(rf.Status||'대기')+'">'+escHtml(rf.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(rf.RequestDate)+'</td>'+
         '<td onclick="event.stopPropagation()">'+
           '<button class="btn-approve" onclick="showConfirm('+item.id+',\'승인\','+f.RequestID+')">승인</button>'+
@@ -1633,16 +1634,16 @@ async function loadAdminList() {
         // 본문에 폭을 또 지정하면 두 값이 어긋나 열이 겹치거나 말줄임이 어긋난다.
         // 말줄임과 글자 크기는 #tab-* .list-table td 규칙이 한 곳에서 담당한다.
         '<td style="text-align:center;color:#a19f9d">'+(total-idx)+'</td>'+
-        '<td style="color:#605e5c" title="'+escHtml(f.RequesterEmail||'')+'">'+(f.RequesterEmail||'')+'</td>'+
-        '<td title="'+escHtml(f.Title||'')+'">'+(f.Title||'-')+'</td>'+
-        '<td style="text-align:center"><span class="badge badge-'+(f.TicketType||'')+'">'+(f.TicketType||'-')+'</span></td>'+
+        '<td style="color:#605e5c" title="'+escHtml(f.RequesterEmail||'')+'">'+escHtml(f.RequesterEmail||'')+'</td>'+
+        '<td title="'+escHtml(f.Title||'')+'">'+escHtml(f.Title||'-')+'</td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(f.TicketType||'')+'">'+escHtml(f.TicketType||'-')+'</span></td>'+
         // 상세보기의 「제목」과 같은 값. 목록에서 무슨 건인지 바로 알 수 있게 한다.
         '<td title="'+escHtml(stripHtml(f.TicketTitle||f.Title||''))+'">'
           +(escHtml(stripHtml(f.TicketTitle||''))||'-')+'</td>'+
-        '<td title="'+escHtml(f.SubType||'')+'">'+(f.SubType||'-')+'</td>'+
-        '<td title="'+escHtml(apkf||'')+'">'+(apkf||'-')+'</td>'+
-        '<td style="text-align:center"><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
-        '<td style="text-align:center"><span class="badge badge-'+(f.Status||'대기')+'">'+(f.Status||'-')+'</span></td>'+
+        '<td title="'+escHtml(cellText(f.SubType))+'">'+(escHtml(cellText(f.SubType))||'-')+'</td>'+
+        '<td title="'+escHtml(cellText(apkf))+'">'+(escHtml(cellText(apkf))||'-')+'</td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(f.Priority||'')+'">'+escHtml(f.Priority||'-')+'</span></td>'+
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(f.Status||'대기')+'">'+escHtml(f.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(f.RequestDate)+'</td>'+
       '</tr>';
     },'조회 결과가 없습니다.',10);
@@ -1759,14 +1760,14 @@ async function loadHistoryList() {
       const pkf = stripHtml(rf.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       const myStatus = af.Status || '-';
       return '<tr onclick="showDetail('+af.RequestID+',\'history\')" style="cursor:pointer">' +
-        '<td style="color:#0078d4">'+(total-idx)+'</td>' +
-        '<td style="font-size:12px;color:#605e5c;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'-')+'</td>' +
-        '<td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.Title||rf.TicketTitle||'-')+'</td>' +
-        '<td><span class="badge badge-'+(rf.TicketType||'')+'">'+( rf.TicketType||'-')+'</span></td>' +
-        '<td style="font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.SubType||'-')+'</td>' +
-        '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(pkf||'-')+'</td>' +
-        '<td><span class="badge badge-'+(rf.Priority||'')+'">'+( rf.Priority||'-')+'</span></td>' +
-        '<td><span class="badge badge-'+(rf.Status||'대기')+'">'+( rf.Status||'-')+'</span></td>' +
+        '<td style="text-align:center;color:#0078d4">'+(total-idx)+'</td>' +
+        '<td style="color:#605e5c" title="'+escHtml(rf.RequesterEmail||'')+'">'+escHtml(rf.RequesterEmail||'-')+'</td>' +
+        '<td title="'+escHtml(rf.Title||rf.TicketTitle||'')+'">'+escHtml(rf.Title||rf.TicketTitle||'-')+'</td>' +
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(rf.TicketType||'')+'">'+escHtml(rf.TicketType||'-')+'</span></td>' +
+        '<td title="'+escHtml(cellText(rf.SubType))+'">'+(escHtml(cellText(rf.SubType))||'-')+'</td>' +
+        '<td title="'+escHtml(cellText(pkf))+'">'+(escHtml(cellText(pkf))||'-')+'</td>' +
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(rf.Priority||'')+'">'+escHtml(rf.Priority||'-')+'</span></td>' +
+        '<td style="text-align:center"><span class="badge badge-'+escHtml(rf.Status||'대기')+'">'+escHtml(rf.Status||'-')+'</span></td>' +
         '<td style="font-size:12px;color:#605e5c">'+(af.ApprovalDate ? fmtDate(af.ApprovalDate) : '-')+'</td>' +
         '</tr>';
     }, '처리한 결재 이력이 없습니다.', 9);
@@ -1774,6 +1775,17 @@ async function loadHistoryList() {
 }
 
 // ══ Show Detail ══
+// 목록 셀에 넣을 값을 다듬는다.
+// 요청 구분(SubType)은 다중 선택을 ', ' 로 이어 붙인 값이라(selectSubtype 참고)
+// 예전 자료에는 후행 구분자나 빈 항목이 섞여 「Vendor Posting Request, 」 처럼 남기도 한다.
+// 화면에서는 이런 꼬리를 떼고, 구분자 간격도 하나로 맞춘다.
+function cellText(v){
+  return String(v == null ? '' : v)
+    .replace(/\s*[;,]\s*/g, ', ')   // 구분자를 ', ' 하나로
+    .replace(/(?:,\s*)+$/, '')       // 후행 구분자 제거
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
 function stripHtml(v){
   if(!v||typeof v!=='string') return v;
   return v.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').trim();
