@@ -202,9 +202,15 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 /* 폭은 헤더가 정한다. 헤더가 nowrap 이면 긴 제목이 열을 밀어내 폭 지정이 무력해진다. */
 #tab-list .list-table th, #tab-approval .list-table th,
 #tab-history .list-table th, #tab-admin .list-table th { white-space: normal; line-height: 1.25; font-size: .7rem; }
-/* 지정 폭을 넘는 내용은 말줄임으로 접는다. 전체 내용은 마우스를 올리면 보인다. */
+/* 지정 폭을 넘는 내용은 말줄임으로 접는다. 전체 내용은 마우스를 올리면 보인다.
+   글자 크기도 여기서 한 번에 정한다. 셀마다 인라인으로 두면 열마다 어긋난다. */
 #tab-list .list-table td, #tab-approval .list-table td,
-#tab-history .list-table td, #tab-admin .list-table td { overflow: hidden; text-overflow: ellipsis; }
+#tab-history .list-table td, #tab-admin .list-table td {
+  overflow: hidden; text-overflow: ellipsis; font-size: .72rem; padding-top: 7px; padding-bottom: 7px; }
+/* 목록 안의 배지는 열 폭을 먹으므로 본문보다 작게 둔다. 상세 모달의 배지는 그대로. */
+#tab-list .list-table .badge, #tab-approval .list-table .badge,
+#tab-history .list-table .badge, #tab-admin .list-table .badge {
+  padding: 1px 6px; font-size: .65rem; border-radius: 4px; }
 .list-table tr:hover td { background: #f0f6ff; cursor: pointer; }
 
 /* ── Badges ── */
@@ -699,7 +705,16 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       <div style="overflow-x:auto">
       <table class="list-table">
         <thead><tr>
-          <th style="width:34px;text-align:center">번호</th><th style="width:130px">신청자</th><th style="width:170px">Title</th><th style="width:56px;text-align:center">유형</th><th style="width:262px">제목</th><th style="width:108px">요청구분</th><th style="width:108px">PKF담당자</th><th style="width:68px;text-align:center">우선순위</th><th style="width:76px;text-align:center">상태</th><th style="width:108px">등록일</th>
+          <th style="width:30px;text-align:center">번호</th>
+          <th style="width:104px">신청자</th>
+          <th style="width:164px">Title</th>
+          <th style="width:44px;text-align:center">유형</th>
+          <th style="width:296px">제목</th>
+          <th style="width:130px">요청구분</th>
+          <th style="width:118px">PKF담당자</th>
+          <th style="width:62px;text-align:center">우선순위</th>
+          <th style="width:68px;text-align:center">상태</th>
+          <th style="width:104px">등록일</th>
         </tr></thead>
         <tbody id="admin-body">
           <tr><td colspan="10" style="text-align:center;padding:32px;color:#605e5c">
@@ -1614,17 +1629,20 @@ async function loadAdminList() {
       const f=item.fields, total=items.length;
       const apkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+item.id+',\'admin\')" style="cursor:pointer">'+
-        '<td style="text-align:center">'+(total-idx)+'</td>'+
-        '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'')+'</td>'+
-        '<td style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
-        '<td><span class="badge badge-'+(f.TicketType||'')+'" style="font-size:11px;padding:1px 6px">'+( f.TicketType||'-')+'</span></td>'+
+        // 셀마다 두던 max-width 와 font-size 를 뺐다. 고정 레이아웃에서는 헤더 폭이 곧 열 폭이라
+        // 본문에 폭을 또 지정하면 두 값이 어긋나 열이 겹치거나 말줄임이 어긋난다.
+        // 말줄임과 글자 크기는 #tab-* .list-table td 규칙이 한 곳에서 담당한다.
+        '<td style="text-align:center;color:#a19f9d">'+(total-idx)+'</td>'+
+        '<td style="color:#605e5c" title="'+escHtml(f.RequesterEmail||'')+'">'+(f.RequesterEmail||'')+'</td>'+
+        '<td title="'+escHtml(f.Title||'')+'">'+(f.Title||'-')+'</td>'+
+        '<td style="text-align:center"><span class="badge badge-'+(f.TicketType||'')+'">'+(f.TicketType||'-')+'</span></td>'+
         // 상세보기의 「제목」과 같은 값. 목록에서 무슨 건인지 바로 알 수 있게 한다.
-        '<td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(stripHtml(f.TicketTitle||f.Title||''))+'">'
+        '<td title="'+escHtml(stripHtml(f.TicketTitle||f.Title||''))+'">'
           +(escHtml(stripHtml(f.TicketTitle||''))||'-')+'</td>'+
-        '<td style="font-size:12px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.SubType||'-')+'</td>'+
-        '<td style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(apkf||'-')+'</td>'+
-        '<td><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
-        '<td><span class="badge badge-'+(f.Status||'대기')+'">'+(f.Status||'-')+'</span></td>'+
+        '<td title="'+escHtml(f.SubType||'')+'">'+(f.SubType||'-')+'</td>'+
+        '<td title="'+escHtml(apkf||'')+'">'+(apkf||'-')+'</td>'+
+        '<td style="text-align:center"><span class="badge badge-'+(f.Priority||'')+'">'+(f.Priority||'-')+'</span></td>'+
+        '<td style="text-align:center"><span class="badge badge-'+(f.Status||'대기')+'">'+(f.Status||'-')+'</span></td>'+
         '<td>'+fmtDate(f.RequestDate)+'</td>'+
       '</tr>';
     },'조회 결과가 없습니다.',10);
