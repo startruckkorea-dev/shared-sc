@@ -56,6 +56,24 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 /* 관리자 탭은 열이 많아 860px 로는 우측이 잘린다. 이 탭을 볼 때만 넓힌다.
    다른 탭은 읽기 편한 폭을 그대로 유지한다. */
 #app.wide { max-width: 1280px; }
+
+/* ── 헤더 · BU Admin 연락처 / 계정 정보 (APS 공통) ───────────────────
+   연락처가 글자로만 나열돼 제목·부제와 구분되지 않던 것을 프레임으로 묶는다.
+   클래스 이름에 시스템 이름을 넣지 않아 전 시스템이 같은 정의를 쓴다. */
+.hdr-contact{display:inline-flex;flex-direction:column;gap:3px;margin-top:10px;
+  background:#f4f8fd;border:1px solid #dbe7f5;border-radius:10px;padding:9px 14px 9px 12px}
+.hdr-contact-row{display:flex;align-items:center;gap:8px;font-size:.72rem;line-height:1.5;color:#5a6472}
+/* 역할 배지 — 폭을 고정해 여러 줄의 이메일 시작 위치가 세로로 맞는다 */
+.hdr-contact-tag{flex-shrink:0;min-width:46px;text-align:center;
+  background:#e3edfa;color:#2b5c9e;border-radius:5px;padding:1px 7px;
+  font-size:.66rem;font-weight:700;letter-spacing:.02em}
+.hdr-contact-mail{color:#3d4756;font-weight:500}
+.hdr-contact-mail a{color:#2b5c9e;text-decoration:none}
+.hdr-contact-mail a:hover{text-decoration:underline}
+/* 계정 정보 — 이름은 진하게, 이메일은 옅게 두 줄로 */
+.hdr-user{display:flex;flex-direction:column;align-items:flex-end;line-height:1.35}
+.hdr-user-name{font-size:.8rem;font-weight:600;color:#323130}
+.hdr-user-mail{font-size:.7rem;color:#8a8886}
 .header { background: #fff; border-radius: 6px; padding: 16px 24px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #edebe9; }
 .header .title { font-size: 18px; font-weight: 600; color: #323130; }
 .header-right { font-size: 13px; color: #605e5c; display: flex; align-items: center; gap: 12px; }
@@ -432,11 +450,24 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
     <div>
       <div class="title">SSC</div>
       <div style="font-size:11px;color:#605e5c;margin-top:3px">Shared Service Center — Star Truck Korea</div>
-      <div id="sc-contact-emails" style="font-size:11px;color:#605e5c;margin-top:3px;line-height:1.55"></div>
+            <div class="hdr-contact" id="sc-contact-emails">
+          <div class="hdr-contact-row">
+            <span class="hdr-contact-tag">GL</span>
+            <span class="hdr-contact-mail" id="sc-contact-gl">-</span>
+          </div>
+          <div class="hdr-contact-row">
+            <span class="hdr-contact-tag">AR</span>
+            <span class="hdr-contact-mail" id="sc-contact-ar">-</span>
+          </div>
+          <div class="hdr-contact-row">
+            <span class="hdr-contact-tag">AP</span>
+            <span class="hdr-contact-mail" id="sc-contact-ap">-</span>
+          </div>
+      </div>
     </div>
     <div class="header-right" style="flex-direction:column;align-items:flex-end;gap:8px">
       <div style="display:flex;align-items:center;gap:10px">
-        <span id="user-name"></span>
+        <span id="user-name" class="hdr-user"></span>
         <button id="btn-logout" onclick="signOut()">로그아웃</button>
       </div>
       <!-- 기본은 숨김. 허용 대상(CONTACT/ACCESS/ADMIN)으로 확인된 경우에만 표시한다.
@@ -794,6 +825,31 @@ async function signIn() {
     await msal.loginRedirect({ scopes: SCOPES });
   } catch(e) { showLoginErr(e.message); }
 }
+
+// ── 헤더 표시 헬퍼 (APS 공통) ─────────────────────────────────────────
+// 설정 파일 값을 화면에 그대로 넣지 않는다. textContent·createElement 로만 넣어
+// 값이 바뀌어도 마크업이 깨지거나 태그가 살아나지 않게 한다.
+function setHdrContact(id, email){
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = String(email || '').trim();
+  if (!v) { el.textContent = '-'; return; }
+  const a = document.createElement('a');
+  a.href = 'mailto:' + v;
+  a.textContent = v;
+  el.textContent = '';
+  el.appendChild(a);
+}
+function setHdrUser(name, mail){
+  const el = document.getElementById('user-name');
+  if (!el) return;
+  el.classList.add('hdr-user');
+  el.textContent = '';
+  const n = document.createElement('span'); n.className = 'hdr-user-name'; n.textContent = String(name || '');
+  const m = document.createElement('span'); m.className = 'hdr-user-mail'; m.textContent = String(mail || '');
+  el.appendChild(n); el.appendChild(m);
+}
+
 function signOut() { msal.logoutRedirect(); }
 
 async function getToken() {
@@ -914,7 +970,7 @@ async function boot(account) {
     user.email = (me.mail || me.userPrincipalName || account.username).toLowerCase();
     user.username = (account.username||'').toLowerCase();
   } catch(e) { user.email = (account.username||'').toLowerCase(); }
-  document.getElementById('user-name').textContent = (account.name||account.username) + ' (' + user.email + ')';
+  setHdrUser(account.name||account.username, user.email);
 
   try {
     const site = await api('/sites/' + SITE_PATH);
@@ -1041,17 +1097,11 @@ async function loadSystemConfig() {
       const glEmail = cfg['SHARED-SC_CONTACT_GL'] ? cfg['SHARED-SC_CONTACT_GL'].email : '';
       const arEmail = cfg['SHARED-SC_CONTACT_AR'] ? cfg['SHARED-SC_CONTACT_AR'].email : '';
       const apEmail = cfg['SHARED-SC_CONTACT_AP'] ? cfg['SHARED-SC_CONTACT_AP'].email : '';
-      const el = document.getElementById('sc-contact-emails');
-      if (el) {
-        const lines = [];
-        if (glEmail) lines.push('BU Admin(GL 관련) 문의 Email: <a href="mailto:'+glEmail+'" style="color:#323130;text-decoration:none">'+glEmail+'</a>');
-        if (arEmail) lines.push('BU Admin(AR 관련) 문의 Email: <a href="mailto:'+arEmail+'" style="color:#323130;text-decoration:none">'+arEmail+'</a>');
-        if (apEmail) lines.push('BU Admin(AP 관련) 문의 Email: <a href="mailto:'+apEmail+'" style="color:#323130;text-decoration:none">'+apEmail+'</a>');
-        if (lines.length) {
-          el.style.cssText = 'font-size:11px;color:#605e5c;margin-top:3px;line-height:1.55';
-          el.innerHTML = lines.join('<br>');
-        }
-      }
+      // 세 줄을 innerHTML 로 만들던 것을 헬퍼 호출로 바꾼다.
+      // 값이 없는 역할은 setHdrContact 가 '-' 로 두므로 줄 수가 흔들리지 않는다.
+      setHdrContact('sc-contact-gl', glEmail);
+      setHdrContact('sc-contact-ar', arEmail);
+      setHdrContact('sc-contact-ap', apEmail);
     }
   } catch(e) { console.warn('[Contact]', e); }
 
