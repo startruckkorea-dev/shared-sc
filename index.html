@@ -171,6 +171,22 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .list-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .list-table th { padding: 9px 12px; text-align: left; background: #f3f2f1; border-bottom: 1px solid #edebe9; font-weight: 600; color: #323130; font-size: .75rem; white-space: nowrap; }
 .list-table td { padding: 9px 12px; border-bottom: 1px solid #edebe9; color: #323130; white-space: nowrap; }
+/* 목록 4종을 가로 스크롤 없이 한 화면에 담는다.
+   열 폭을 지정해도 border-collapse 기본(auto) 레이아웃에서는 내용이 길면 무시되고
+   표가 래퍼를 넘어 옆으로 끌어야 했다. table-layout 을 고정하면 넘지 않는다.
+   (ACC Voucher 내 전표 목록 f6ba550 · 관리자 탭 ee74e45 와 같은 방식) */
+#tab-list .list-table, #tab-approval .list-table,
+#tab-history .list-table, #tab-admin .list-table { table-layout: fixed; width: 100%; }
+#tab-list .list-table th, #tab-list .list-table td,
+#tab-approval .list-table th, #tab-approval .list-table td,
+#tab-history .list-table th, #tab-history .list-table td,
+#tab-admin .list-table th, #tab-admin .list-table td { padding-left: 5px; padding-right: 5px; }
+/* 폭은 헤더가 정한다. 헤더가 nowrap 이면 긴 제목이 열을 밀어내 폭 지정이 무력해진다. */
+#tab-list .list-table th, #tab-approval .list-table th,
+#tab-history .list-table th, #tab-admin .list-table th { white-space: normal; line-height: 1.25; font-size: .7rem; }
+/* 지정 폭을 넘는 내용은 말줄임으로 접는다. 전체 내용은 마우스를 올리면 보인다. */
+#tab-list .list-table td, #tab-approval .list-table td,
+#tab-history .list-table td, #tab-admin .list-table td { overflow: hidden; text-overflow: ellipsis; }
 .list-table tr:hover td { background: #f0f6ff; cursor: pointer; }
 
 /* ── Badges ── */
@@ -575,8 +591,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
     <div class="card" style="padding:0;overflow:hidden">
       <table class="list-table">
         <thead><tr>
-          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>PKF담당자</th><th>우선순위</th><th>상태</th><th>등록일</th>
-          <th style="width:80px;text-align:center">Withdraw</th>
+          <th style="width:34px;text-align:center">번호</th><th style="width:130px">신청자</th><th style="width:210px">Title</th><th style="width:56px;text-align:center">유형</th><th style="width:140px">요청구분</th><th style="width:140px">PKF담당자</th><th style="width:72px;text-align:center">우선순위</th><th style="width:82px;text-align:center">상태</th><th style="width:114px">등록일</th><th style="width:142px;text-align:center">Withdraw</th>
         </tr></thead>
         <tbody id="list-body">
           <tr><td colspan="8" style="text-align:center;padding:32px;color:#605e5c">
@@ -592,7 +607,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
     <div class="card" style="padding:0;overflow:hidden">
       <table class="list-table">
         <thead><tr>
-          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>PKF담당자</th><th>우선순위</th><th>상태</th><th>등록일</th><th>처리</th>
+          <th style="width:34px;text-align:center">번호</th><th style="width:126px">신청자</th><th style="width:200px">Title</th><th style="width:56px;text-align:center">유형</th><th style="width:134px">요청구분</th><th style="width:134px">PKF담당자</th><th style="width:70px;text-align:center">우선순위</th><th style="width:80px;text-align:center">상태</th><th style="width:110px">등록일</th><th style="width:176px;text-align:center">처리</th>
         </tr></thead>
         <tbody id="appr-body">
           <tr><td colspan="8" style="text-align:center;padding:32px;color:#605e5c">결재 대기 항목이 없습니다.</td></tr>
@@ -618,7 +633,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       </div>
       <table class="list-table">
         <thead><tr>
-          <th>번호</th><th>신청자</th><th>Title</th><th>유형</th><th>요청구분</th><th>PKF담당자</th><th>우선순위</th><th>상태</th><th>처리일</th>
+          <th style="width:34px;text-align:center">번호</th><th style="width:140px">신청자</th><th style="width:220px">Title</th><th style="width:60px;text-align:center">유형</th><th style="width:150px">요청구분</th><th style="width:150px">PKF담당자</th><th style="width:76px;text-align:center">우선순위</th><th style="width:88px;text-align:center">상태</th><th style="width:202px">처리일</th>
         </tr></thead>
         <tbody id="history-body">
           <tr><td colspan="9" style="text-align:center;padding:32px;color:#605e5c">결재 이력이 없습니다.</td></tr>
@@ -653,16 +668,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       <div style="overflow-x:auto">
       <table class="list-table">
         <thead><tr>
-          <th style="width:42px">번호</th>
-          <th style="width:130px">신청자</th>
-          <th style="width:158px">Title</th>
-          <th style="width:46px">유형</th>
-          <th style="min-width:190px">제목</th>
-          <th style="width:118px">요청구분</th>
-          <th style="width:118px">PKF담당자</th>
-          <th style="width:64px">우선순위</th>
-          <th style="width:72px">상태</th>
-          <th style="width:108px">등록일</th>
+          <th style="width:34px;text-align:center">번호</th><th style="width:130px">신청자</th><th style="width:170px">Title</th><th style="width:56px;text-align:center">유형</th><th style="width:262px">제목</th><th style="width:108px">요청구분</th><th style="width:108px">PKF담당자</th><th style="width:68px;text-align:center">우선순위</th><th style="width:76px;text-align:center">상태</th><th style="width:108px">등록일</th>
         </tr></thead>
         <tbody id="admin-body">
           <tr><td colspan="10" style="text-align:center;padding:32px;color:#605e5c">
@@ -1302,7 +1308,7 @@ async function loadMyList() {
       const f = item.fields, total = mine.length;
       const lpkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+item.id+',\'list\')" style="cursor:pointer">'+
-        '<td>'+(total-idx)+'</td>'+
+        '<td style="text-align:center">'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'-')+'</td>'+
         '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
         '<td><span class="badge badge-'+f.TicketType+'">'+f.TicketType+'</span></td>'+
@@ -1337,7 +1343,7 @@ async function loadApprovalQueue() {
       const total=mine.length;
       const pkfNames=stripHtml(rf.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+f.RequestID+',\'appr\')" style="cursor:pointer">'+
-        '<td style="color:#0078d4">'+(total-idx)+'</td>'+
+        '<td style="color:#0078d4;text-align:center">'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.RequesterEmail||'')+'</td>'+
         '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(rf.Title||'-')+'</td>'+
         '<td><span class="badge badge-'+(rf.TicketType||'')+'">'+( rf.TicketType||'-')+'</span></td>'+
@@ -1558,7 +1564,7 @@ async function loadAdminList() {
       const f=item.fields, total=items.length;
       const apkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+item.id+',\'admin\')" style="cursor:pointer">'+
-        '<td>'+(total-idx)+'</td>'+
+        '<td style="text-align:center">'+(total-idx)+'</td>'+
         '<td style="font-size:12px;color:#605e5c;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.RequesterEmail||'')+'</td>'+
         '<td style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.Title||'-')+'</td>'+
         '<td><span class="badge badge-'+(f.TicketType||'')+'" style="font-size:11px;padding:1px 6px">'+( f.TicketType||'-')+'</span></td>'+
