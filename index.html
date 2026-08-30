@@ -60,13 +60,13 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 /* ── 헤더 · BU Admin 연락처 / 계정 정보 (APS 공통) ───────────────────
    연락처가 글자로만 나열돼 제목·부제와 구분되지 않던 것을 프레임으로 묶는다.
    클래스 이름에 시스템 이름을 넣지 않아 전 시스템이 같은 정의를 쓴다. */
-.hdr-contact{display:inline-flex;flex-direction:column;gap:3px;margin-top:10px;
-  background:#f4f8fd;border:1px solid #dbe7f5;border-radius:10px;padding:9px 14px 9px 12px}
-.hdr-contact-row{display:flex;align-items:center;gap:8px;font-size:.72rem;line-height:1.5;color:#5a6472}
-/* 역할 배지 — 폭을 고정해 여러 줄의 이메일 시작 위치가 세로로 맞는다 */
-.hdr-contact-tag{flex-shrink:0;min-width:46px;text-align:center;
-  background:#e3edfa;color:#2b5c9e;border-radius:5px;padding:1px 7px;
-  font-size:.66rem;font-weight:700;letter-spacing:.02em}
+.hdr-contact{display:inline-flex;flex-direction:column;gap:1px;margin-top:8px;
+  background:#f4f8fd;border:1px solid #dbe7f5;border-radius:8px;padding:6px 12px 6px 10px}
+.hdr-contact-row{display:flex;align-items:center;gap:7px;font-size:.7rem;line-height:1.42;color:#5a6472}
+/* 라벨이 「BU Admin」 또는 「BU Admin(GL)」 로 길이가 달라, 폭을 고정하는 대신
+   구분선 하나로 나눈다. 폭을 고정하면 가장 긴 라벨에 맞춰 빈 칸이 크게 남는다. */
+.hdr-contact-tag{flex-shrink:0;color:#2b5c9e;font-size:.68rem;font-weight:700;letter-spacing:-.01em;
+  padding-right:7px;border-right:1px solid #cfdff2}
 .hdr-contact-mail{color:#3d4756;font-weight:500}
 .hdr-contact-mail a{color:#2b5c9e;text-decoration:none}
 .hdr-contact-mail a:hover{text-decoration:underline}
@@ -458,15 +458,15 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
       <div style="font-size:11px;color:#605e5c;margin-top:3px">Shared Service Center — Star Truck Korea</div>
             <div class="hdr-contact" id="sc-contact-emails">
           <div class="hdr-contact-row">
-            <span class="hdr-contact-tag">GL</span>
+            <span class="hdr-contact-tag">BU Admin(GL)</span>
             <span class="hdr-contact-mail" id="sc-contact-gl">-</span>
           </div>
           <div class="hdr-contact-row">
-            <span class="hdr-contact-tag">AR</span>
+            <span class="hdr-contact-tag">BU Admin(AR)</span>
             <span class="hdr-contact-mail" id="sc-contact-ar">-</span>
           </div>
           <div class="hdr-contact-row">
-            <span class="hdr-contact-tag">AP</span>
+            <span class="hdr-contact-tag">BU Admin(AP)</span>
             <span class="hdr-contact-mail" id="sc-contact-ap">-</span>
           </div>
       </div>
