@@ -630,17 +630,32 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 
   <!-- ══ TAB: 내 티켓 목록 ══ -->
   <div id="tab-list" style="display:none">
-    <div class="card" style="padding:0;overflow:hidden">
+    <div class="card">
+      <!-- 관리자 탭과 같은 구성. 신청자 검색은 뺐다 — 이 화면은 전부 본인 티켓이다. -->
+      <div class="filter-bar">
+        <select id="list-filter-status" onchange="renderMyList()">
+          <option value="">전체 상태</option>
+          <option>대기</option><option>접수됨</option><option>처리중</option><option>승인완료</option><option>반려</option><option>철회</option>
+        </select>
+        <select id="list-filter-type" onchange="renderMyList()">
+          <option value="">전체 유형</option>
+          <option>GL</option><option>AR</option><option>AP</option>
+        </select>
+        <input type="text" id="list-filter-search" oninput="renderMyList()" placeholder="제목 검색...">
+        <span id="list-count" style="font-size:13px;color:#605e5c;margin-left:auto"></span>
+      </div>
+      <div style="overflow-x:auto">
       <table class="list-table">
         <thead><tr>
-          <th style="width:34px;text-align:center">번호</th><th style="width:130px">신청자</th><th style="width:210px">Title</th><th style="width:56px;text-align:center">유형</th><th style="width:140px">요청구분</th><th style="width:140px">PKF담당자</th><th style="width:72px;text-align:center">우선순위</th><th style="width:82px;text-align:center">상태</th><th style="width:114px">등록일</th><th style="width:142px;text-align:center">Withdraw</th>
+          <th style="width:34px;text-align:center">번호</th><th style="width:200px">Title</th><th>요청 제목</th><th style="width:56px;text-align:center">유형</th><th style="width:140px">요청구분</th><th style="width:140px">PKF담당자</th><th style="width:72px;text-align:center">우선순위</th><th style="width:82px;text-align:center">상태</th><th style="width:114px">등록일</th><th style="width:142px;text-align:center">Withdraw</th>
         </tr></thead>
         <tbody id="list-body">
-          <tr><td colspan="8" style="text-align:center;padding:32px;color:#605e5c">
+          <tr><td colspan="10" style="text-align:center;padding:32px;color:#605e5c">
             <div class="dyn-dots" style="justify-content:center"><span></span><span></span><span></span></div>
           </td></tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 
@@ -652,7 +667,7 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
           <th style="width:34px;text-align:center">번호</th><th style="width:126px">신청자</th><th style="width:200px">Title</th><th style="width:56px;text-align:center">유형</th><th style="width:134px">요청구분</th><th style="width:134px">PKF담당자</th><th style="width:70px;text-align:center">우선순위</th><th style="width:80px;text-align:center">상태</th><th style="width:110px">등록일</th><th style="width:176px;text-align:center">처리</th>
         </tr></thead>
         <tbody id="appr-body">
-          <tr><td colspan="8" style="text-align:center;padding:32px;color:#605e5c">결재 대기 항목이 없습니다.</td></tr>
+          <tr><td colspan="10" style="text-align:center;padding:32px;color:#605e5c">결재 대기 항목이 없습니다.</td></tr>
         </tbody>
       </table>
     </div>
@@ -1365,23 +1380,50 @@ function switchTab(name) {
 }
 
 // ══ My List ══
+// 조회한 내 티켓 원본. 필터는 이 배열을 다시 걸러 그리기만 하므로
+// 필터를 바꿀 때마다 SharePoint 를 다시 부르지 않는다 (관리자 탭과 같은 방식).
+let _myListRaw = [];
+
 async function loadMyList() {
   dynLoad(true,'티켓 목록 불러오는 중');
   try {
     if (!siteId) { const s = await api('/sites/'+SITE_PATH); siteId = s.id; }
     const data = await apiAll('/sites/'+siteId+'/lists/'+sscReq()+'/items?$expand=fields&$top=500');
-    const mine = data.value
+    _myListRaw = data.value
       .filter(i=>(i.fields.RequesterEmail||'').toLowerCase()===user.email)
       .sort((a,b)=>new Date(b.fields.RequestDate)-new Date(a.fields.RequestDate));
     dynLoad(false);
+    renderMyList();
+  } catch(e) { dynLoad(false); document.getElementById('list-body').innerHTML='<tr><td colspan="10" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
+}
+
+function renderMyList() {
+  const fStatus = (document.getElementById('list-filter-status')||{}).value || '';
+  const fType   = (document.getElementById('list-filter-type')||{}).value || '';
+  const fKw     = ((document.getElementById('list-filter-search')||{}).value || '').toLowerCase().trim();
+  const mine = _myListRaw.filter(i => {
+    const f = i.fields;
+    // 철회(잠김) 같은 파생 상태도 「철회」로 묶어서 걸린다.
+    if (fStatus && !String(f.Status||'대기').startsWith(fStatus)) return false;
+    if (fType   && String(f.TicketType||'') !== fType) return false;
+    // 제목은 Title(자동 채번)과 요청 제목(사용자 입력) 둘 다에서 찾는다.
+    if (fKw && !((f.Title||'')+' '+(f.TicketTitle||'')).toLowerCase().includes(fKw)) return false;
+    return true;
+  });
+  const cnt = document.getElementById('list-count');
+  if (cnt) cnt.textContent = (fStatus||fType||fKw)
+    ? '필터 ' + mine.length + '건 / 전체 ' + _myListRaw.length + '건'
+    : '총 ' + _myListRaw.length + '건';
+  try {
     pgSet('list', mine, (item, idx) => {
       const f = item.fields, total = mine.length;
       const lpkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return '<tr onclick="showDetail('+item.id+',\'list\')" style="cursor:pointer">'+
         // 폭은 헤더가 정한다. 본문에 max-width 를 또 두면 두 값이 어긋나 말줄임이 나오지 않는다.
         '<td style="text-align:center;color:#a19f9d">'+(total-idx)+'</td>'+
-        '<td style="color:#605e5c" title="'+escHtml(f.RequesterEmail||'')+'">'+escHtml(f.RequesterEmail||'-')+'</td>'+
+        // 신청자 열은 뺐다 — 이 화면은 전부 본인 티켓이라 같은 값만 반복된다.
         '<td title="'+escHtml(f.Title||'')+'">'+escHtml(f.Title||'-')+'</td>'+
+        '<td title="'+escHtml(cellText(f.TicketTitle))+'">'+(escHtml(cellText(f.TicketTitle))||'-')+'</td>'+
         '<td style="text-align:center"><span class="badge badge-'+escHtml(f.TicketType||'')+'">'+escHtml(f.TicketType||'-')+'</span></td>'+
         '<td title="'+escHtml(cellText(f.SubType))+'">'+(escHtml(cellText(f.SubType))||'-')+'</td>'+
         '<td title="'+escHtml(cellText(lpkf))+'">'+(escHtml(cellText(lpkf))||'-')+'</td>'+
@@ -1390,8 +1432,8 @@ async function loadMyList() {
         '<td>'+fmtDate(f.RequestDate)+'</td>'+
         '<td style="text-align:center">'+wdBtn(item.id, f.Status)+'</td>'+
       '</tr>';
-    }, '등록된 티켓이 없습니다.', 10);
-  } catch(e) { dynLoad(false); document.getElementById('list-body').innerHTML='<tr><td colspan="8" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
+    }, (fStatus||fType||fKw) ? '조회 결과가 없습니다.' : '등록된 티켓이 없습니다.', 10);
+  } catch(e) { document.getElementById('list-body').innerHTML='<tr><td colspan="10" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
 }
 
 // ══ Approval queue ══
