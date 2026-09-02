@@ -834,6 +834,28 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .list-table td [class^="badge-"],
 .list-table td [class*=" badge-"] { padding-top:1px; padding-bottom:1px; line-height:16px; }
 .list-table td button { line-height:16px; }
+/* ── 번호 열 (APS 연동 시스템 공통) ──────────────────────────────────
+   번호는 값이 아니라 자리 표시다. 시스템마다 파란 굵은 글씨 · 회색 · 지정 없음으로
+   갈려 있어 Goodwill 기준(옅은 회색 · 본문보다 한 단계 작게)으로 맞춘다.
+
+   렌더러가 인라인 style 로 색·크기를 박는 곳이 많다. 인라인은 CSS 를 이기므로
+   !important 가 필요하다. 렌더러를 30곳 넘게 고치는 대신 한 규칙으로 덮는다.
+
+   .9em 은 본문 대비 비율이라 표마다 글자 크기가 달라도 같은 비율로 작아진다
+   (GW 기준 .68rem / .74rem = 0.92).
+
+   colspan 이 붙은 칸은 「데이터 없음」·합계처럼 번호가 아니므로 제외한다. */
+.list-table td:first-child:not([colspan]) {
+  color:#a19f9d !important; font-weight:400 !important; font-size:.9em !important;
+}
+/* 이 시스템만 본문 크기를 테이블이 아니라 td 에 건다(#tab-* .list-table td{font-size:.72rem}).
+   em 은 부모 기준이라 td 에 걸린 값은 계산에 들어가지 않아 번호가 오히려 커진다.
+   탭 스코프로 같은 비율을 직접 지정한다. */
+#tab-list .list-table td:first-child:not([colspan]),
+#tab-approval .list-table td:first-child:not([colspan]),
+#tab-history .list-table td:first-child:not([colspan]),
+#tab-admin .list-table td:first-child:not([colspan]) { font-size:.65rem !important; }
+
 </style>
 
 <footer style="margin-top:48px;padding:18px 28px;border-top:1px solid #e2e8f0">
