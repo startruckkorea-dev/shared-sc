@@ -1764,7 +1764,7 @@ async function exportAdminExcel(){
       const f=i.fields;
       const pkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return[
-        items.length-idx,
+        idx+1,   // 번호는 내보낸 순서(09-10)
         f.RequesterEmail||'',
         f.Title||'',
         f.TicketType||'',
