@@ -988,12 +988,15 @@ async function aprRowsRetry(path, tries){
     try{
       const r = await apiAll(path);
       const rows = (r && r.value) || [];
-      if(rows.length) return rows;
+      if(rows.length){ aprRowsRetry.lastError = ''; return rows; }
       last = new Error('조회 결과가 비어 있음');
     }catch(e){ last = e; }
     if(i < tries - 1) await new Promise(s => setTimeout(s, 400 * (i + 1)));
   }
-  console.error('[결재] 결재행 조회 실패(재시도 ' + tries + '회):', last && last.message);
+  // 원인을 밖에서도 읽을 수 있게 남긴다. 화면 안내에 붙여야 사용자가 IT팀에
+  // 전달할 수 있다(400=필터/타입 문제, 429=일시 스로틀 — 대응이 전혀 다르다).
+  aprRowsRetry.lastError = (last && last.message) || '원인 불명';
+  console.error('[결재] 결재행 조회 실패(재시도 ' + tries + '회):', aprRowsRetry.lastError);
   return [];
 }
 
@@ -2533,7 +2536,7 @@ async function doApproval(){
       if(!_rows.length){
         console.error('[SSC] 결재 행 조회 결과가 비어 있음 — 승인완료 전환 중단. RequestID:', reqId);
         showAlert('승인은 기록되었으나 다음 단계로 넘기지 못했습니다.',
-          '잠시 후 결재함에서 상태를 다시 확인해 주세요. 계속 같은 증상이면 IT팀(stk_it@hyosung.com)에 알려주세요.','⚠️');
+          '잠시 후 결재함에서 상태를 다시 확인해 주세요. 계속 같은 증상이면 IT팀(stk_it@hyosung.com)에 알려주세요.' + (aprRowsRetry.lastError ? '\n(원인: ' + aprRowsRetry.lastError + ')' : ''),'⚠️');
         await loadApprovalQueue(); await refreshApprBadge();
         return;
       }
