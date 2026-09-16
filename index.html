@@ -46,13 +46,18 @@ function aacRolePill(role, status){
   const verb = (s === '승인' || s === '승인완료') ? 'Approved on behalf of'
              : s === '반려' ? 'Rejected on behalf of'
              : s.indexOf('철회') === 0 ? 'Withdrawn on behalf of' : 'On behalf of';
-  return ' <span title="' + escHtml(verb + ' ' + p.name + (p.email ? ' (' + p.email + ')' : ''))
+  /* 메일 주소만 보여준다. 예전에는 '이름 · 메일' 을 함께 찍어 알약이 길어졌고,
+     바로 아래 줄에 이미 처리자 이름·메일이 나오므로 이름이 두 번 읽혔다.
+     메일이 사람을 가리는 유일한 값이라 그것만 남긴다.
+     메일이 없는 옛 기록(이름만 저장된 건)에서는 이름을 쓴다 — 빈 알약을 만들지 않는다. */
+  const who = p.email || p.name;
+  if(!who) return '';
+  return ' <span title="' + escHtml(verb + ' ' + who)
     + '" style="background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;font-size:10px;'
     + 'font-weight:600;letter-spacing:.1px;border-radius:10px;padding:1px 9px;margin-left:6px;'
     + 'white-space:normal;word-break:break-all;vertical-align:1px">'
     + '<span style="font-weight:400;opacity:.8">' + verb + ' </span>'
-    + '<b style="font-weight:700">' + escHtml(p.name) + '</b>'
-    + (p.email ? '<span style="font-weight:400;opacity:.75"> &middot; ' + escHtml(p.email) + '</span>' : '')
+    + '<b style="font-weight:700">' + escHtml(who) + '</b>'
     + '</span>';
 }
 function spText(s){
