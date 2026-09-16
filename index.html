@@ -25,10 +25,15 @@ function escHtml(s){
    IT-Ticket(1877행 부근)·Goodwill-Approval·aps 와 같은 표기·같은 색이다.
    대리가 아니면 aacRolePill 이 빈 문자열을 돌려주므로 호출부에 조건이 필요 없다. */
 function _aacRoleParse(role){
-  const m = String(role == null ? '' : role).match(/^([\s\S]*?)\s*\u00B7\s*대리\(([\s\S]+)\)\s*$/);
+  /* 꼬리를 뗀다. 괄호 안은 탐욕적으로 읽지 않는다 —
+     '대리(A <a@x>) · 대리(B <b@x>)' 처럼 두 번 붙은 값(쓰기 쪽에서 막고 있지만
+     과거 데이터에 있을 수 있다)에서 첫 괄호만 취하게 한다. */
+  const m = String(role == null ? '' : role).match(/^([\s\S]*?)\s*\u00B7\s*대리\(([^()]*(?:\([^()]*\))?[^()]*)\)/);
   if(!m) return null;
   const im = m[2].match(/^([\s\S]*?)\s*<([^>]+)>\s*$/);
-  return { base: m[1].trim(), name: (im ? im[1] : m[2]).trim(), email: im ? im[2].trim() : '' };
+  const nm = (im ? im[1] : m[2]).trim(), em = im ? im[2].trim() : '';
+  // 이름이 없으면 메일을 이름 자리에 쓴다 — 'on behalf of  · a@x.com' 처럼 비지 않게
+  return { base: m[1].trim(), name: nm || em, email: nm ? em : '' };
 }
 function aacRoleBase(role){
   const p = _aacRoleParse(role);
@@ -44,7 +49,7 @@ function aacRolePill(role, status){
   return ' <span title="' + escHtml(verb + ' ' + p.name + (p.email ? ' (' + p.email + ')' : ''))
     + '" style="background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;font-size:10px;'
     + 'font-weight:600;letter-spacing:.1px;border-radius:10px;padding:1px 9px;margin-left:6px;'
-    + 'white-space:nowrap;vertical-align:1px">'
+    + 'white-space:normal;word-break:break-all;vertical-align:1px">'
     + '<span style="font-weight:400;opacity:.8">' + verb + ' </span>'
     + '<b style="font-weight:700">' + escHtml(p.name) + '</b>'
     + (p.email ? '<span style="font-weight:400;opacity:.75"> &middot; ' + escHtml(p.email) + '</span>' : '')
