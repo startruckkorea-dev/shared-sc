@@ -50,7 +50,11 @@ function aacRolePill(role, status){
      바로 아래 줄에 이미 처리자 이름·메일이 나오므로 이름이 두 번 읽혔다.
      메일이 사람을 가리는 유일한 값이라 그것만 남긴다.
      메일이 없는 옛 기록(이름만 저장된 건)에서는 이름을 쓴다 — 빈 알약을 만들지 않는다. */
-  const who = p.email || p.name;
+  /* 이름과 메일을 함께 보여준다. 예전에는 p.email || p.name 으로 메일만 써서
+     「Approved on behalf of jimmy.lee@hyosung.com」 처럼 이름이 빠졌다 —
+     결재 이력에서 누구인지 한눈에 알기 어렵다.
+     둘 다 있으면 '이름 · 메일', 한쪽만 있으면 있는 쪽만 쓴다. */
+  const who = (p.name && p.email) ? (p.name + ' \u00B7 ' + p.email) : (p.name || p.email);
   if(!who) return '';
   return ' <span title="' + escHtml(verb + ' ' + who)
     + '" style="background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;font-size:10px;'
@@ -961,7 +965,15 @@ async function loadMyDelegations(){
     const res=await apiAll('/sites/'+siteId+'/lists/'+LIST_AAC+"/items?$expand=fields&$top=500&$filter=fields/Status eq '승인완료'");
     (res.value||[]).map(x=>x.fields).forEach(f=>{
       if(!me.includes(String(f.DeputyEmail||'').trim().toLowerCase())) return;
-      const s=_aacKst(f.StartDate), e=_aacKst(f.EndDate);
+      /* 날짜만 저장된 값은 AAC 와 같은 규칙으로 보정한다.
+         AAC 의 effStatus 는 (en.length<=10 ? en+' 23:59' : en) < now 로 판정해
+         날짜만 있는 건을 그날 끝까지 유효로 본다. 여기서 보정하지 않으면
+         '2026-09-20' < '2026-09-20 14:00' 이라 그날 00:00 에 만료된 것처럼 되어,
+         AAC 화면에는 승인완료로 보이는데 시스템에서는 대리가 안 먹는다.
+         시작도 같은 이유로 00:00 을 붙인다(그날 처음부터 유효). */
+      let s=_aacKst(f.StartDate), e=_aacKst(f.EndDate);
+      if(s && s.length<=10) s=s+' 00:00';
+      if(e && e.length<=10) e=e+' 23:59';
       if(!s||!e||s>now||e<now) return;
       /* Scope 는 쉼표 구분 키 목록이고 'ALL' 토큰이 「APS 전체」를 뜻한다.
          문자열 전체를 비교하면 'ALL,FLEX,CONCUR,SAPBE1' 같은 값에서 이 시스템이
