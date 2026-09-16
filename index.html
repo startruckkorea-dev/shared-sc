@@ -968,7 +968,7 @@ async function loadMyDelegations(){
         if(!_sk.includes('ALL') && !_sk.includes(AAC_SYS_KEY)) return;
       }
       const dg=String(f.RequesterEmail||'').trim().toLowerCase();
-      if(dg) _aacDelegated.set(dg,{name:f.RequesterName||dg,title:f.Title||''});
+      if(dg) _aacDelegated.set(dg,{name:f.RequesterName||dg,title:f.Title||'',from:s,to:e});
     });
     if(_aacDelegated.size) console.log('[AAC] 대리 결재 가능:',[..._aacDelegated.keys()].join(', '));
   }catch(e){ console.warn('[AAC] 위임 조회 실패 — 내 결재만 표시:',e&&e.message); }
@@ -978,13 +978,33 @@ function isMyAppr(email){
   const e=String(email||'').toLowerCase();
   if(!e) return false;
   if(e===(user&&user.email||'').toLowerCase()||e===(user&&user.username||'').toLowerCase()) return true;
-  return _aacDelegated.has(e);
+  /* 맵에 있어도 기간이 지났으면 내 것이 아니다. 로그인 후 오래 열어 둔 탭에서
+     만료된 위임이 결재함에 남아 보이던 것을 막는다(쓰기는 aacPatchWith 가 다시 막는다). */
+  const d=_aacDelegated.get(e);
+  if(!d) return false;
+  if(d.from && d.to){
+    const _n=new Date(Date.now()+9*3600*1000).toISOString().slice(0,16).replace('T',' ');
+    if(d.from > _n || d.to < _n) return false;
+  }
+  return true;
 }
 function aacDelegatorOf(email){ return _aacDelegated.get(String(email||'').toLowerCase())||null; }
 // 결재 처리 PATCH 에 대리 기록을 얹는다(대리 건이 아니면 그대로).
 function aacPatchWith(patch, curFields){
   const orig=String(curFields&&curFields.ApproverEmail||''); const d=aacDelegatorOf(orig);
   if(!d) return patch;
+  /* 처리 직전에 기간을 다시 본다. 위임 맵은 로그인(또는 결재함 로드) 시점에 한 번
+     만들어지므로, 탭을 오래 열어 두면 기간이 끝난 뒤에도 맵에 남아 있다.
+     그대로 두면 「기간이 지났는데 대리로 처리되는」 창이 생긴다 —
+     화면만 고쳐서는 막을 수 없으므로 쓰기 직전에 판정한다.
+     기간 정보가 없는 옛 맵이면(from/to 없음) 예전처럼 통과시킨다. */
+  if(d.from && d.to){
+    const _n=new Date(Date.now()+9*3600*1000).toISOString().slice(0,16).replace('T',' ');
+    if(d.from > _n || d.to < _n){
+      console.warn('[AAC] 대리 기간이 끝났습니다 — 대리 처리로 기록하지 않습니다:', orig, d.from, '~', d.to);
+      throw new Error('대리 기간이 종료되었습니다. 화면을 새로고침한 뒤 다시 확인해 주세요.');
+    }
+  }
   const r=String(curFields.ApproverRole||'');
   const out={...patch, ApproverEmail:(user.email||user.username||''), ApproverName:(user.name||user.email||'')};
   // 원 결재자를 이름 + 메일로 남긴다. 치환 뒤 ApproverEmail 은 대리인 것이 되므로
