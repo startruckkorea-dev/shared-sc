@@ -437,8 +437,9 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .lt-filter-chip input{cursor:pointer;width:13px;height:13px;accent-color:#0078d4;margin:0}
 .lt-badge{display:inline-block;border-radius:8px;padding:1px 5px;font-size:.58rem;font-weight:700;flex-shrink:0}
 .lt-badge-대기{background:#fff4ce;color:#7d5700}
-/* BP Master 처리중 — 관리자가 처리 이력을 남긴 진행 건(결재는 아직 진행 중). BP·APS 와 같은 파랑 */
-.lt-badge-처리중{background:#dbeafe;color:#1d4ed8}
+/* BP Master 접수됨 — 관리자가 처리 이력을 남긴 진행 건(결재는 아직 진행 중). SSC 접수됨 배지와 같은 색.
+   09-17 처음 배포 때 BP 가 쓰던 값 「처리중」 도 같은 모양으로 둔다. */
+.lt-badge-접수됨,.lt-badge-처리중{background:#e0e7ff;color:#4338ca}
 .lt-badge-승인완료{background:#dff6dd;color:#107c10}
 .lt-badge-반려{background:#fde7e9;color:#a4262c}
 .lt-badge-철회{background:#f1f5f9;color:#64748b}
@@ -3034,7 +3035,7 @@ function ltResetDateFilter() {
 // 시스템별로 남는 상태값이 조금씩 다를 수 있으므로 목록을 고정하지 않고,
 // 현재 불러온 데이터에 실제로 존재하는 상태만 칩으로 만들어 보여준다.
 let _ltStatusSel = new Set();   // 비어 있으면 전체
-const LT_STATUS_ORDER = ['대기', '처리중', '승인완료', '반려', '철회', '철회(잠김)'];
+const LT_STATUS_ORDER = ['대기', '접수됨', '처리중', '승인완료', '반려', '철회', '철회(잠김)'];
 // 상태 칩의 건수는 "상태를 제외한 나머지 조건(기간·검색어·결재건)을 적용한 결과" 기준으로 센다.
 // 전체 목록 기준으로 세면 화면에 보이는 건수와 칩 숫자가 어긋난다.
 function ltStatusBaseItems() {
