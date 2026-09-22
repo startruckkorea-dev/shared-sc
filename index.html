@@ -262,11 +262,12 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 #tab-history .list-table td, #tab-admin .list-table td {
   overflow: hidden; text-overflow: ellipsis; font-size: .72rem; padding-top: 6px; padding-bottom: 6px; line-height: 20px; }
 /* 목록 안의 배지는 열 폭을 먹으므로 본문보다 작게 둔다. 상세 모달의 배지는 그대로.
-   모양은 ACC Voucher 목록 배지(.badge-대기 등: 2px 8px · .68rem · 10px)와 같게 — 4px 각진 알약은
-   다른 APS 화면과 달라 보였다(09-23 요청). */
+   크기는 처음 값(1px 6px · .65rem)을 지키고 모서리만 10px 둥근 알약으로(ACC Voucher 와 같은 반지름).
+   09-23 에 ACC 목록 배지 크기(2px 8px · .68rem)로 키웠더니 관리자 탭 상태 열(68px)을 넘어
+   말줄임표가 붙어 「승인완료 …」 로 보였다 — 열 폭이 고정이라 크기는 늘릴 수 없다. */
 #tab-list .list-table .badge, #tab-approval .list-table .badge,
 #tab-history .list-table .badge, #tab-admin .list-table .badge {
-  padding: 2px 8px; font-size: .68rem; border-radius: 10px; }
+  padding: 1px 6px; font-size: .65rem; border-radius: 10px; }
 .list-table tr:hover td { background: #f0f6ff; cursor: pointer; }
 
 /* ── Badges ── */
