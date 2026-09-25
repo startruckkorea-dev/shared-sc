@@ -491,6 +491,19 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
   </div>
 </div>
 
+<!-- 권한 확인 중 화면(09-25) — 로그인 직후 앱을 바로 보이지 않고, 설정을 읽어 입장 판정이 날 때까지 이 화면만 보인다.
+     예전에는 boot 가 먼저 #app 을 켠 뒤 설정을 읽어 판정해서, 권한 없는 계정에도 신청서 · 탭이 1~2초 보였다가 차단 화면으로 바뀌었다. -->
+<div id="gate-screen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(145deg,#0f2744 0%,#0078d4 100%)">
+  <div style="background:#fff;border-radius:20px;padding:44px 44px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.22);max-width:400px;width:90%">
+    <div style="font-size:3rem;margin-bottom:16px">📋</div>
+    <div style="font-size:1.15rem;font-weight:800;color:#0f2744;margin-bottom:6px">SSC</div>
+    <div style="font-size:.82rem;color:#0078d4;font-weight:600;margin-bottom:22px">Shared Service Center · Star Truck Korea</div>
+    <div id="gate-msg" style="font-size:.85rem;color:#374151;line-height:1.8">🔐 접근 권한을 확인하는 중입니다…</div>
+    <div id="gate-retry" style="display:none;margin-top:18px">
+      <button onclick="location.reload()" style="background:#0078d4;color:#fff;border:none;border-radius:10px;padding:10px 26px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit">다시 시도</button>
+    </div>
+  </div>
+</div>
 <!-- Pre-open / Access Denied Screen -->
 <div id="preopen-screen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(145deg,#0f2744 0%,#0078d4 100%)">
   <div style="background:#fff;border-radius:20px;padding:48px 44px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.22);max-width:400px;width:90%">
@@ -1214,10 +1227,14 @@ function logAction(systemName, action, detail) {
 }
 
 // ══ Boot ══
+/* 입장 순서(09-25): 로그인 → 「권한 확인 중」 화면 → /me · 사이트 · system_config 읽기 → 입장 판정 → 통과한 계정에만 #app.
+   예전(41d8a98 · a02e35b 이후)에는 #app 을 먼저 켜고 설정을 읽어 판정했기 때문에 권한 없는 계정에도 신청서 · 탭 · 담당자 메일이
+   1~2초 보였다가 차단 화면으로 바뀌었다. MKQR 처럼 판정 전에는 아무 내용도 보이지 않게 한다.
+   설정을 못 읽으면(네트워크 · 권한) 「통과」 시키지 않고 다시 시도 화면을 보인다 — 게이트는 닫힌 쪽이 기본. */
 async function boot(account) {
   user = account;
   document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  document.getElementById('gate-screen').style.display = 'flex';
   try {
     const me = await api('/me?$select=mail,userPrincipalName');
     user.email = (me.mail || me.userPrincipalName || account.username).toLowerCase();
@@ -1228,29 +1245,21 @@ async function boot(account) {
   try {
     const site = await api('/sites/' + SITE_PATH);
     siteId = site.id;
-    await loadMyDelegations();   // 내가 대리인으로 받은 위임 — 결재함 판정에 쓴다(AAC)
     await loadSystemConfig();
 
-    // 접근 권한 체크 — loadSystemConfig 이후 loadListIds에서 실행
-    checkSscAccess();
-
-    // 접근 권한 체크
-    const cfg = _sysConfig;
-    // 2nd_ 담당자 키를 동적으로 수집 (Excel에서 _N 추가/삭제 시 자동 반영)
-    const _2ndKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_2nd_'+_n]){ _2ndKeys.push('SHARED-SC_2nd_'+_n); _n++; } }
-    // ACCESS_ 키를 동적으로 수집 — 앱 입장 게이트 전용 (ADMIN_는 관리자 탭 전용이며 입장권한과 별개)
-    const _accessKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_ACCESS_'+_n]){ _accessKeys.push('SHARED-SC_ACCESS_'+_n); _n++; } }
-    const allowedKeys = [
-      'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
-      ..._accessKeys,
-      ..._2ndKeys
-    ];
-    const allowed = allowedKeys.map(k=>cfg&&cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
-    if (allowed.length && !allowed.includes(user.email)) {
-      document.getElementById('app').style.display = 'none';
+    // 입장 판정 — 설정이 없으면(못 읽음) 열지 않는다
+    if (!_sysConfig) {
+      document.getElementById('gate-msg').innerHTML = '⚠️ 권한 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.';
+      document.getElementById('gate-retry').style.display = 'block';
+      return;
+    }
+    if (!checkSscAccess()) {
+      document.getElementById('gate-screen').style.display = 'none';
       document.getElementById('preopen-screen').style.display = 'flex';
       return;
     }
+    const cfg = _sysConfig;
+    const _accessKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_ACCESS_'+_n]){ _accessKeys.push('SHARED-SC_ACCESS_'+_n); _n++; } }
 
     // 「돌아가기」(APS) 버튼은 APS 통합 결재함 접근 대상에게만 노출한다.
     // CONTACT / ACCESS_N / ADMIN_N 에 등록된 계정만 해당하며,
@@ -1264,17 +1273,31 @@ async function boot(account) {
       if (_backBtn) _backBtn.style.display = 'inline-flex';
     }
 
+    // 판정을 통과한 계정에만 앱을 연다
+    document.getElementById('gate-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+    await loadMyDelegations();   // 내가 대리인으로 받은 위임 — 결재함 판정에 쓴다(AAC). 입장 판정에는 필요 없어 그 뒤로 옮김(09-25)
     await loadListIds();
     await refreshApprBadge();
     setInterval(refreshApprBadge, 60000);
-  } catch(e) { showAlert('SharePoint 연결 오류', e.message, '⚠️'); }
+  } catch(e) {
+    // 게이트 단계의 오류는 열지 않고 다시 시도 화면으로. 앱이 이미 열린 뒤의 오류만 예전처럼 안내한다.
+    if (document.getElementById('app').style.display !== 'block') {
+      document.getElementById('gate-msg').innerHTML = '⚠️ 연결에 실패했습니다.<br>' + escHtml(e.message || '') + '<br>잠시 후 다시 시도해 주세요.';
+      document.getElementById('gate-retry').style.display = 'block';
+    } else showAlert('SharePoint 연결 오류', e.message, '⚠️');
+  }
 }
 
 // ══ System Config (system_config_final.xlsx) ══
+/* 입장 판정(참 = 들어갈 수 있음). CONTACT_AR/AP/GL · ACCESS_N · 2nd_N(PKF) 에 등록된 메일만.
+   화면은 boot 가 바꾼다 — 예전에는 여기와 boot 양쪽에 같은 검사가 있어 둘 중 하나만 고치면 어긋났다(09-25 통합).
+   설정이 없거나(못 읽음) 허용 목록이 비어 있으면 열지 않는다 — 「config 없으면 통과」 하던 것을 닫힌 쪽으로 바꿈. */
 function checkSscAccess() {
   const cfg = _sysConfig;
   const ue = user ? user.email : '';
-  if (!cfg || !ue) return; // config 없으면 통과
+  if (!cfg || !ue) return false;
   // 2nd_ 담당자 키를 동적으로 수집 (Excel에서 _N 추가/삭제 시 자동 반영)
   const _2ndKeys = []; { let _n=1; while(cfg['SHARED-SC_2nd_'+_n]){ _2ndKeys.push('SHARED-SC_2nd_'+_n); _n++; } }
   // ACCESS_ 키를 동적으로 수집 — 앱 입장 게이트 전용 (ADMIN_는 관리자 탭 전용이며 입장권한과 별개)
@@ -1285,10 +1308,8 @@ function checkSscAccess() {
     ..._2ndKeys
   ];
   const allowed = allowedKeys.map(k=>cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
-  if (allowed.length > 0 && !allowed.includes(ue)) {
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('preopen-screen').style.display = 'flex';
-  }
+  if (!allowed.length) { console.warn('[SSC] 허용 목록이 비어 있어 입장을 막았다 — system_config 의 SHARED-SC_CONTACT/ACCESS/2nd 확인'); return false; }
+  return allowed.includes(ue);
 }
 
 async function loadListIds() {
