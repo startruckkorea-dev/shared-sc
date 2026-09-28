@@ -1236,10 +1236,14 @@ async function boot(account) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('gate-screen').style.display = 'flex';
   try {
-    const me = await api('/me?$select=mail,userPrincipalName');
+    const me = await api('/me?$select=mail,userPrincipalName,otherMails,userType');
     user.email = (me.mail || me.userPrincipalName || account.username).toLowerCase();
     user.username = (account.username||'').toLowerCase();
-  } catch(e) { user.email = (account.username||'').toLowerCase(); }
+    user.upn = (me.userPrincipalName || '').toLowerCase();
+    user.otherMails = (me.otherMails || []).map(x => String(x || '').toLowerCase());
+    // 게스트(B2B · PKF 담당자) — userType 이 Guest 이거나 UPN 이 xxx_pkf.co.kr#EXT#@… 꼴
+    user.isGuest = String(me.userType || '').toLowerCase() === 'guest' || /#ext#@/i.test(user.upn) || /#ext#@/i.test(user.username);
+  } catch(e) { user.email = (account.username||'').toLowerCase(); user.username = (account.username||'').toLowerCase(); user.isGuest = /#ext#@/i.test(user.username); }
   setHdrUser(account.name||account.username, user.email);
 
   try {
@@ -1247,28 +1251,43 @@ async function boot(account) {
     siteId = site.id;
     await loadSystemConfig();
 
-    // 입장 판정 — 설정이 없으면(못 읽음) 열지 않는다
+    // 입장 판정 — 설정이 없으면(못 읽음) 열지 않는다.
+    // 예외(09-28): PKF 담당자 같은 게스트 계정은 STK-DB 문서 라이브러리(system_config_final.xlsx)를 읽을 권한이 없을 수 있다.
+    //   09-25 이전에는 「설정 없으면 통과」 로 들어왔고, 닫힌 게이트로 바꾼 뒤 막혔다. 게스트는 SSC_Approvals 에 결재자로
+    //   지정된 적이 있으면(= 설정의 2nd_N 담당자로 결재선에 올라간 사람) 들여보낸다. 내부 계정은 그대로 설정 명단으로만.
+    let _gateNote = '';
     if (!_sysConfig) {
-      document.getElementById('gate-msg').innerHTML = '⚠️ 권한 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.';
-      document.getElementById('gate-retry').style.display = 'block';
-      return;
+      const ev = user.isGuest ? await sscApproverEvidence() : '';
+      if (!ev) {
+        document.getElementById('gate-msg').innerHTML = '⚠️ 권한 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.' +
+          (user.isGuest ? '<br><span style="font-size:.75rem;color:#6b7280">외부(게스트) 계정은 IT 에 SSC 권한 확인을 요청해 주세요 — stk_it@hyosung.com</span>' : '');
+        document.getElementById('gate-retry').style.display = 'block';
+        logAction('SSC', '입장 차단', { reason: '설정 읽기 실패', ids: sscMyIds().join(','), guest: !!user.isGuest });
+        return;
+      }
+      _gateNote = '설정 없음 · 결재자 근거(' + ev + ')';
+    } else if (!checkSscAccess()) {
+      const ev = user.isGuest ? await sscApproverEvidence() : '';
+      if (!ev) {
+        document.getElementById('gate-screen').style.display = 'none';
+        document.getElementById('preopen-screen').style.display = 'flex';
+        logAction('SSC', '입장 차단', { reason: '허용 명단에 없음', ids: sscMyIds().join(','), guest: !!user.isGuest, allowed: sscAllowedEmails().length });
+        return;
+      }
+      _gateNote = '명단 불일치 · 결재자 근거(' + ev + ')';
     }
-    if (!checkSscAccess()) {
-      document.getElementById('gate-screen').style.display = 'none';
-      document.getElementById('preopen-screen').style.display = 'flex';
-      return;
-    }
-    const cfg = _sysConfig;
-    const _accessKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_ACCESS_'+_n]){ _accessKeys.push('SHARED-SC_ACCESS_'+_n); _n++; } }
+    if (_gateNote) { console.warn('[SSC] 입장:', _gateNote); logAction('SSC', '입장(예외 근거)', { note: _gateNote, ids: sscMyIds().join(','), guest: !!user.isGuest }); }
+    const cfg = _sysConfig || {};
+    const _accessKeys = cfgSeqKeys(cfg, 'SHARED-SC_ACCESS_');
 
     // 「돌아가기」(APS) 버튼은 APS 통합 결재함 접근 대상에게만 노출한다.
     // CONTACT / ACCESS_N / ADMIN_N 에 등록된 계정만 해당하며,
     // PKF 담당자(SHARED-SC_2nd_N)는 APS 권한이 없어 눌러도 빈 화면만 보게 되므로 제외한다.
     // 기본이 숨김이라 판정 전 깜빡임이 없다.
-    const _adminKeys = []; { let _n=1; while(cfg&&cfg['SHARED-SC_ADMIN_'+_n]){ _adminKeys.push('SHARED-SC_ADMIN_'+_n); _n++; } }
+    const _adminKeys = cfgSeqKeys(cfg, 'SHARED-SC_ADMIN_');
     const _apsKeys = ['SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL', ..._accessKeys, ..._adminKeys];
     const _apsEmails = _apsKeys.map(k => (cfg && cfg[k] && cfg[k].email || '').trim().toLowerCase()).filter(Boolean);
-    if (_apsEmails.includes((user.email || '').toLowerCase())) {
+    if (sscMyIds().some(v => _apsEmails.includes(v))) {
       const _backBtn = document.getElementById('btn-back-aps');
       if (_backBtn) _backBtn.style.display = 'inline-flex';
     }
@@ -1294,22 +1313,47 @@ async function boot(account) {
 /* 입장 판정(참 = 들어갈 수 있음). CONTACT_AR/AP/GL · ACCESS_N · 2nd_N(PKF) 에 등록된 메일만.
    화면은 boot 가 바꾼다 — 예전에는 여기와 boot 양쪽에 같은 검사가 있어 둘 중 하나만 고치면 어긋났다(09-25 통합).
    설정이 없거나(못 읽음) 허용 목록이 비어 있으면 열지 않는다 — 「config 없으면 통과」 하던 것을 닫힌 쪽으로 바꿈. */
+/* 접두어 + 번호(1, 2, 3…) 키를 전부 모은다 — 번호가 비어 있어도(2nd_1 을 지우고 2nd_2 · 2nd_3 만 남긴 경우) 그 뒤를 놓치지 않는다(09-28).
+   예전 while(cfg[prefix+n]) 은 첫 빈 번호에서 멈춰, 설정 파일에서 사람 하나를 지우면 뒤 번호 전원이 명단에서 빠졌다. */
+function cfgSeqKeys(cfg, prefix) {
+  return Object.keys(cfg || {}).filter(k => k.startsWith(prefix) && /^\d+$/.test(k.slice(prefix.length)))
+    .sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
+}
+/* 내 신원 후보 — 게스트(B2B) 계정은 mail 이 비어 있거나 UPN 이 xxx_pkf.co.kr#EXT#@tenant 꼴이라 값 하나만 보면 놓친다(09-28).
+   mail · UPN · 로그인 계정 · otherMails · 토큰의 email/preferred_username · #EXT# 를 되돌린 원래 메일까지 모두 비교한다. */
+function sscMyIds() {
+  const ids = new Set();
+  const add = v => { v = String(v || '').trim().toLowerCase(); if (v) ids.add(v); };
+  if (user) {
+    add(user.email); add(user.username); add(user.upn); (user.otherMails || []).forEach(add);
+    const c = user.idTokenClaims || {}; add(c.email); add(c.preferred_username); add(c.upn);
+  }
+  [...ids].forEach(v => { const m = v.match(/^(.+?)#ext#@/i); if (m) add(m[1].replace(/_([^_]+)$/, '@$1')); });
+  return [...ids];
+}
+function sscAllowedEmails() {
+  const cfg = _sysConfig; if (!cfg) return [];
+  const allowedKeys = ['SHARED-SC_CONTACT_AR', 'SHARED-SC_CONTACT_AP', 'SHARED-SC_CONTACT_GL', ...cfgSeqKeys(cfg, 'SHARED-SC_ACCESS_'), ...cfgSeqKeys(cfg, 'SHARED-SC_2nd_')];
+  return allowedKeys.map(k => cfg[k] ? String(cfg[k].email || '').trim().toLowerCase() : '').filter(Boolean);
+}
 function checkSscAccess() {
   const cfg = _sysConfig;
-  const ue = user ? user.email : '';
-  if (!cfg || !ue) return false;
-  // 2nd_ 담당자 키를 동적으로 수집 (Excel에서 _N 추가/삭제 시 자동 반영)
-  const _2ndKeys = []; { let _n=1; while(cfg['SHARED-SC_2nd_'+_n]){ _2ndKeys.push('SHARED-SC_2nd_'+_n); _n++; } }
-  // ACCESS_ 키를 동적으로 수집 — 앱 입장 게이트 전용 (ADMIN_는 관리자 탭 전용이며 입장권한과 별개)
-  const _accessKeys = []; { let _n=1; while(cfg['SHARED-SC_ACCESS_'+_n]){ _accessKeys.push('SHARED-SC_ACCESS_'+_n); _n++; } }
-  const allowedKeys = [
-    'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
-    ..._accessKeys,
-    ..._2ndKeys
-  ];
-  const allowed = allowedKeys.map(k=>cfg[k]?cfg[k].email.toLowerCase():'').filter(Boolean);
+  const ids = sscMyIds();
+  if (!cfg || !ids.length) return false;
+  const allowed = sscAllowedEmails();
   if (!allowed.length) { console.warn('[SSC] 허용 목록이 비어 있어 입장을 막았다 — system_config 의 SHARED-SC_CONTACT/ACCESS/2nd 확인'); return false; }
-  return allowed.includes(ue);
+  return ids.some(v => allowed.includes(v));
+}
+/* 결재자 근거 — SSC_Approvals 에 내 메일이 결재자(ApproverEmail)로 적힌 행이 하나라도 있으면 그 메일을 돌려준다.
+   결재선에는 설정의 담당자(CONTACT · 2nd_N)만 올라가므로, 설정을 못 읽는 게스트를 들여보내는 근거로 쓴다(09-28). */
+async function sscApproverEvidence() {
+  for (const id of sscMyIds().filter(v => v.includes('@') && !/#ext#@/i.test(v))) {
+    try {
+      const r = await api('/sites/' + siteId + '/lists/' + sscApr() + "/items?$expand=fields($select=ApproverEmail)&$filter=fields/ApproverEmail eq '" + id.replace(/'/g, "''") + "'&$top=1");
+      if ((r.value || []).length) return id;
+    } catch (e) { console.warn('[SSC] 결재자 근거 조회 실패:', id, e.message); }
+  }
+  return '';
 }
 
 async function loadListIds() {
@@ -1338,9 +1382,7 @@ async function loadSystemConfig() {
     // IT Manager override
     if(cfg['IT_MANAGER']) Object.assign(IT_MANAGER, cfg['IT_MANAGER']);
     // Admin list override
-    const admins = [];
-    let n=1;
-    while(cfg['SHARED-SC_ADMIN_'+n]){ admins.push(cfg['SHARED-SC_ADMIN_'+n].email); n++; }
+    const admins = cfgSeqKeys(cfg, 'SHARED-SC_ADMIN_').map(k => cfg[k].email).filter(Boolean);
     if(admins.length) ADMIN_EMAILS.splice(0,ADMIN_EMAILS.length,...admins);
   } catch(e) { console.warn('[Config] xlsx load failed:', e.message); _configLoaded=true; }
 
@@ -1351,12 +1393,7 @@ async function loadSystemConfig() {
       // PKF 2차 담당자 동적 렌더링 (SHARED-SC_2nd_N)
       const pkfGrid = document.getElementById('pkf-grid');
       if (pkfGrid) {
-        const pkfList = [];
-        let pn = 1;
-        while(cfg['SHARED-SC_2nd_'+pn]) {
-          pkfList.push({ name: cfg['SHARED-SC_2nd_'+pn].name, email: cfg['SHARED-SC_2nd_'+pn].email });
-          pn++;
-        }
+        const pkfList = cfgSeqKeys(cfg, 'SHARED-SC_2nd_').map(k => ({ name: cfg[k].name, email: cfg[k].email })).filter(p => p.email);
         if (pkfList.length) {
           pkfGrid.innerHTML = pkfList.map(p =>
             `<div class="assignee-card" onclick="toggleAssignee(this,'${p.email}','${p.name}')">
@@ -1385,16 +1422,12 @@ async function loadSystemConfig() {
 
 function isAdmin() {
   if (!user) return false;
-  if (ADMIN_EMAILS.map(e=>e.toLowerCase()).includes((user.email||'').toLowerCase())) return true;
+  const ids = sscMyIds();
+  if (ADMIN_EMAILS.map(e=>String(e||'').toLowerCase()).some(e => e && ids.includes(e))) return true;
   // SHARED-SC_ADMIN_N 도 관리자로 인정
   const cfg = _sysConfig;
   if (!cfg) return false;
-  let n=1;
-  while(cfg['SHARED-SC_ADMIN_'+n]) {
-    if((cfg['SHARED-SC_ADMIN_'+n].email||'').toLowerCase()===(user.email||'').toLowerCase()) return true;
-    n++;
-  }
-  return false;
+  return cfgSeqKeys(cfg, 'SHARED-SC_ADMIN_').some(k => ids.includes(String(cfg[k].email||'').toLowerCase()));
 }
 
 // ══ Employee data ══
@@ -2539,12 +2572,7 @@ function closeModal(){
 // ══ PKF 담당자 변경 ══
 function showPKFChangeModal(reqId) {
   const cfg = _sysConfig;
-  const pkfList = [];
-  let pn = 1;
-  while (cfg && cfg['SHARED-SC_2nd_'+pn]) {
-    pkfList.push({ name: cfg['SHARED-SC_2nd_'+pn].name, email: cfg['SHARED-SC_2nd_'+pn].email });
-    pn++;
-  }
+  const pkfList = cfgSeqKeys(cfg, 'SHARED-SC_2nd_').map(k => ({ name: cfg[k].name, email: cfg[k].email })).filter(p => p.email);
   if (!pkfList.length) { alert('PKF 담당자 목록을 불러올 수 없습니다.'); return; }
 
   const radios = pkfList.map((p,i) =>
