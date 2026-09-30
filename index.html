@@ -1635,7 +1635,8 @@ async function submitTicket() {
 function switchTab(name) {
   if (name==='admin') {
     if (!_configLoaded) { setTimeout(()=>switchTab('admin'),1200); return; }
-    if (!isAdmin()) { document.getElementById('no-auth-modal').style.display='flex'; return; }
+    if (!isAdmin()) { logAction('SSC', '관리자 탭 접근 차단', { reason: '관리자 명단에 없음' }); document.getElementById('no-auth-modal').style.display='flex'; return; }   // 권한이 없어 막혀도 이력은 남긴다(09-30)
+    logAction('SSC', '관리자 탭 열기', {});
   }
   ['new','list','approval','history','admin'].forEach(t=>{
     document.getElementById('tab-'+t).style.display = t===name?'block':'none';
