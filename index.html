@@ -101,6 +101,10 @@ body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f3f2f1
 .login-page-footer{position:fixed;bottom:0;left:0;right:0;padding:10px 24px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:rgba(255,255,255,.55);background:rgba(0,0,0,.18)}
 /* ── App shell ── */
 #app { display: none; max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+/* 탭 전환 폭 애니메이션(APS 공통 · 10-07) — 넓은 탭(목록 · 결재함 · 관리자 등)으로 가거나 돌아올 때 폭이 부드럽게 바뀐다.
+   첫 화면이 뜨는 동안에는 움직이지 않도록 사용자가 처음 누르거나 키를 칠 때 html.aps-wtx 를 켠다(switchTab 위 참고). 「애니메이션 줄이기」 설정이면 끈다. */
+html.aps-wtx #app{transition:max-width .2s ease}
+@media (prefers-reduced-motion:reduce){html.aps-wtx #app{transition:none}}
 /* 관리자 탭은 열이 많아 860px 로는 우측이 잘린다. 이 탭을 볼 때만 넓힌다.
    다른 탭은 읽기 편한 폭을 그대로 유지한다. */
 #app.wide { max-width: 1280px; }
@@ -1686,6 +1690,46 @@ async function submitTicket() {
 }
 
 // ══ Tabs ══
+// 탭 전환 폭 애니메이션(APS 공통 · 10-07) — 사용자가 처음 누르거나 키를 칠 때부터 html.aps-wtx 를 켠다.
+// 로그인 직후 첫 탭을 고르며 폭을 정할 때(바로가기 주소로 결재함 · 관리자를 바로 여는 경우 포함)는 움직이지 않게 하려는 것.
+// 넓어지는 0.2초 동안은 틀이 아직 좁아 표가 넘치므로 가로 스크롤 막대가 잠깐 생겼다 사라지며 아래 내용이 출렁인다(Windows 기본 스크롤 막대).
+// 그래서 지금은 넘치지만 다 넓어지면 들어맞는 가로 스크롤 칸만 그동안 가로 넘침을 숨겼다가 애니메이션이 끝나면 원래대로 돌린다.
+// (다 넓어져도 넘치는 표 · 좁아질 때는 손대지 않는다 · 오류가 나도 숨긴 것은 바로 되돌린다)
+;(function () {
+  var R = document.documentElement, BOX = '#app', held = [], tm = 0, sig = null, pend = false;
+  function on() { R.classList.add('aps-wtx'); }
+  document.addEventListener('pointerdown', on, { capture: true, once: true });
+  document.addEventListener('keydown', on, { capture: true, once: true });
+  function box() { return document.querySelector(BOX); }
+  function running(b) { if (!b.getAnimations) return null; var a = b.getAnimations().filter(function (x) { return x.transitionProperty === 'max-width'; }); return a.length ? a[a.length - 1] : null; }
+  function release() { clearTimeout(tm); tm = 0; for (var i = 0; i < held.length; i++) if (held[i][0].style.overflowX === 'hidden') held[i][0].style.overflowX = held[i][1]; held = []; }   // 그사이 앱이 바꿨으면 그대로 둔다
+  function scan(p, out) { for (var c = p.firstElementChild; c; c = c.nextElementSibling) { var cs = getComputedStyle(c); if (cs.display === 'none') continue;
+    if (cs.overflowX === 'auto') out.push(c);                                   // scroll(막대 늘 보임) 칸은 숨기면 오히려 출렁이므로 제외
+    if (!/^(TABLE|SELECT|TEXTAREA|CANVAS|IMG|svg)$/i.test(c.tagName)) scan(c, out); } }
+  function check() {
+    try {
+      var b = box(); if (!b) return;
+      var s = b.style.maxWidth + '|' + b.className + '|' + document.body.className; if (s === sig) return; sig = s;
+      if (!R.classList.contains('aps-wtx')) return;
+      release();
+      var a = running(b); if (!a || !a.effect || !a.effect.getComputedTiming) return;
+      var et = a.effect.getComputedTiming().endTime, t0 = a.currentTime; if (!(et > 1) || t0 === null) return;
+      var c = []; scan(b, c); if (!c.length) return;
+      // 지금(시작 폭)과 끝 폭에서 각 칸이 넘치는지 잰다 — 끝 폭은 전환을 끝 직전으로 잠깐 옮겨 재고 곧바로 되돌린다(그리기 전이라 화면엔 안 보임)
+      var o0 = c.map(function (el) { return el.scrollWidth - el.clientWidth; }), o1;
+      try { a.currentTime = et - 1; o1 = c.map(function (el) { return el.scrollWidth - el.clientWidth; }); } finally { a.currentTime = t0; }
+      var pick = c.filter(function (el, i) { return o0[i] > 1 && o1[i] <= 1; });   // 지금은 넘치지만 다 넓어지면 들어맞는 칸만(끝까지 넘치는 표는 막대를 그대로 둔다)
+      for (var i = 0; i < pick.length; i++) { held.push([pick[i], pick[i].style.overflowX]); pick[i].style.overflowX = 'hidden'; }
+      if (held.length) tm = setTimeout(release, 450);
+    } catch (e) { release(); }
+  }
+  function end(e) { var b = box(); if (!b || e.propertyName !== 'max-width' || e.target !== b) return; if (running(b)) return; release(); }   // 되돌리며 밀려난 앞 전환의 cancel 은 넘긴다
+  document.addEventListener('transitionend', end, true); document.addEventListener('transitioncancel', end, true);
+  function watch() { var b = box(); if (!b || !window.MutationObserver) return; check();
+    // 바뀐 즉시가 아니라 다음 그리기 직전(requestAnimationFrame)에 잰다 — 탭을 바꾸며 캐시로 바로 다시 그리는 목록(await 뒤 · 같은 틱)까지 그려진 뒤에 재야 해서
+    var mo = new MutationObserver(function () { if (pend) return; pend = true; requestAnimationFrame(function () { pend = false; check(); }); }); mo.observe(b, { attributes: true, attributeFilter: ['style', 'class'] }); mo.observe(document.body, { attributes: true, attributeFilter: ['class'] }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
+})();
 function switchTab(name) {
   if (name==='admin') {
     if (!_configLoaded) { setTimeout(()=>switchTab('admin'),1200); return; }
