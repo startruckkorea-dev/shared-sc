@@ -2359,6 +2359,183 @@ async function showDetail(reqId, fromTab) {
   finally{ loading(false); }
 }
 
+/* ═══ APS 공통 — 첨부 병합 · 머리띠 (APS-ATTACH v1 · 2026-10-06 일원화) ═══════════════════════════
+   ACC Voucher(첨부 병합 기준 시스템 · 10-06 b1869aa)의 동작을 APS 시스템들에 「같은 코드」 로 넣었다. 고칠 때는 이 블록을 모든 시스템에서 함께 고친다.
+   · 머리띠: 첨부 페이지의 「보이는 영역」(CropBox ∩ MediaBox) 원점과 회전(/Rotate)을 보정해 보이는 화면 맨 위에 그린다.
+     예전엔 원점을 (0,0) 으로 보고 getSize() 로 그려, Excel 에서 저장한 PDF(원점 [-12 12 …])는 띠가 오른쪽으로 12pt 밀리고 「출력일시」 가 잘렸고,
+     가로로 돌려 저장된 페이지(/Rotate 90 · 180 · 270)는 띠가 옆 · 아래로 가거나 페이지 밖으로 나가 보이지 않았다(10-06 ACC Voucher ID-331).
+   · 이미지(jpg · png)는 새 A4 페이지에, PDF 는 그대로 · Office 문서는 Graph 로 PDF 변환해 페이지째 붙인다(예전과 같음).
+   · 붙일 수 없는 첨부는 건너뛰지 않고 안내 카드 한 장을 넣는다 — 조용히 빠지면 출력물만 보고 「첨부가 없었다」 고 읽게 된다(ACC 09-07 보험증권 건).
+       encrypted: 발급처가 잠근 PDF(전자 증명서 · 홈택스 계산서 · 암호 PDF) — 그대로 붙이면 백지 · 오류 페이지가 된다(ACC f3134ca)
+       nolink   : 파일 이름만 있고 저장 위치(drive · item)가 없는 첨부(예전엔 조용히 건너뜀)
+       failed   : 내려받기 · 변환 · 붙이기 실패(예전엔 머리띠만 있는 빈 페이지)
+   · 머리띠 모양(색 · 글자)은 각 시스템의 머리띠 함수를 그대로 쓴다(opt.header) — 시스템마다 모양이 바뀌지 않는다.
+   opt: { token, header: async text => PNG(Uint8Array | dataURL), label = '첨부파일: ', A4W = 595, A4H = 842, hdrH = 22, marginPt = 34, onFile(name) } */
+function apsPdfVisualFrame(pg) {
+  // 보이는 영역 = CropBox ∩ MediaBox(뷰어와 같은 규칙 · 모서리 순서가 뒤집힌 상자도 바로잡음). /Rotate 가 90 의 배수가 아니면 뷰어처럼 0 으로 본다.
+  const { pushGraphicsState, popGraphicsState, concatTransformationMatrix, PDFName, PDFRef, PDFArray } = PDFLib;
+  const nb = q => ({ x0: Math.min(q.x, q.x + q.width), y0: Math.min(q.y, q.y + q.height), x1: Math.max(q.x, q.x + q.width), y1: Math.max(q.y, q.y + q.height) });
+  // 상자 · 회전 값이 망가진 PDF(값 개수가 틀림 · 숫자가 아님)는 pdf-lib 가 읽다가 던진다 — 그 쪽도 붙이고 띠는 MediaBox · 회전 0 기준으로
+  const box = f => { try { return nb(f()); } catch (e) { return null; } };
+  const md = box(() => pg.getMediaBox()) || { x0: 0, y0: 0, x1: 612, y1: 792 }, c = box(() => pg.getCropBox()) || md;
+  const x0 = Math.max(c.x0, md.x0), y0 = Math.max(c.y0, md.y0), x1 = Math.min(c.x1, md.x1), y1 = Math.min(c.y1, md.y1);
+  const v = x1 > x0 && y1 > y0 ? { x0, y0, x1, y1 } : md;
+  const b = { x: v.x0, y: v.y0, width: v.x1 - v.x0, height: v.y1 - v.y0 };
+  let r = 0; try { r = Number(pg.getRotation().angle) || 0; } catch (e) {}
+  r = ((r % 360) + 360) % 360; if (r % 90) r = 0;
+  const m = r === 90  ? [0, 1, -1, 0, b.x + b.width, b.y]
+          : r === 180 ? [-1, 0, 0, -1, b.x + b.width, b.y + b.height]
+          : r === 270 ? [0, -1, 1, 0, b.x, b.y + b.height]
+          :             [1, 0, 0, 1, b.x, b.y];
+  // 여러 쪽이 /Contents 배열 하나를 같이 쓰는 PDF 는 이 쪽 것만 떼어 낸다 — 안 그러면 이 쪽에 그린 띠가 다른 쪽에도 찍힌다
+  try { const raw = pg.node.get(PDFName.of('Contents'));
+    if (raw instanceof PDFRef) { const a = pg.doc.context.lookup(raw); if (a instanceof PDFArray) pg.node.set(PDFName.of('Contents'), pg.doc.context.obj(a.asArray())); } } catch (e) {}
+  return { width: r % 180 ? b.height : b.width, height: r % 180 ? b.width : b.height,
+    begin() { pg.pushOperators(pushGraphicsState(), concatTransformationMatrix(...m)); },
+    end() { pg.pushOperators(popGraphicsState()); } };
+}
+function apsU8FromDataUrl(u) {   // fetch(dataURL) 대신 직접 푼다 — 페이지 CSP(connect-src)와 상관없이 된다
+  const s = String(u), bin = atob(s.slice(s.indexOf(',') + 1)), out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function apsPngBytes(v) { v = await v; return typeof v === 'string' ? apsU8FromDataUrl(v) : v; }
+function apsAttachmentItems(rootEl) {   // 상세 화면의 첨부 링크(.file-dl-link · data-name/drive/id) → [{name, driveId, itemId}]
+  const d = v => { try { return decodeURIComponent(v || ''); } catch (e) { return String(v || ''); } };
+  return rootEl ? Array.from(rootEl.querySelectorAll('.file-dl-link')).map(l => ({ name: d(l.dataset.name), driveId: d(l.dataset.drive), itemId: d(l.dataset.id) })) : [];
+}
+async function apsNoticeCardBytes(kind, name, info) {
+  const S = 2;                               // 선명하게 보이도록 2배로 그린 뒤 절반 크기로 넣는다
+  const F = '"Segoe UI","Apple SD Gothic Neo",sans-serif';
+  const c = document.createElement('canvas'); c.width = 430 * S; c.height = 400 * S;
+  const x = c.getContext('2d'); x.scale(S, S);
+  const cw = 430;
+  const T = {
+    encrypted: { title: 'Encrypted PDF — could not be merged', sub: 'This attachment is protected by its issuer',
+      lines: ['The issuer restricted copying and editing of this document (e-certificates, e-tax invoices, password-protected files, etc.).',
+              'Its contents cannot be included in this printout. Open the original from the attachment link on the request.'],
+      accent: '#b45309', bg: '#fffbeb', border: '#fcd34d', icon: 'lock' },
+    nolink:    { title: 'Attachment link is missing', sub: 'The file could not be located',
+      lines: ['Only the file name is stored on the request — the storage key is missing.',
+              'Open the request to check the attachment, or contact IT.'],
+      accent: '#b91c1c', bg: '#fef2f2', border: '#fca5a5', icon: 'link' },
+    failed:    { title: 'Attachment could not be converted', sub: 'Download or PDF conversion failed',
+      lines: ['An error occurred while downloading the file or converting it to PDF (password-protected Office files cannot be converted).',
+              'Try printing again later, or open the original from the attachment link on the request.'],
+      accent: '#b91c1c', bg: '#fef2f2', border: '#fca5a5', icon: 'warn' },
+  }[kind] || { title: 'Attachment', sub: '', lines: [], accent: '#605e5c', bg: '#f3f2f1', border: '#d2d0ce', icon: 'warn' };
+  // 폭에 맞춰 줄바꿈 — 영문은 단어 단위로, 공백 없는 긴 파일명은 글자 단위로 자른다
+  const wrap = (txt, maxW, font, max = 4) => { x.font = font; const out = []; let cur = '';
+    const push = (piece) => { if (x.measureText(cur ? cur + ' ' + piece : piece).width <= maxW) { cur = cur ? cur + ' ' + piece : piece; return; }
+      if (cur) { out.push(cur); cur = ''; }
+      if (x.measureText(piece).width <= maxW) { cur = piece; return; }
+      for (const ch of piece) { if (x.measureText(cur + ch).width > maxW && cur) { out.push(cur); cur = ch; } else cur += ch; } };
+    String(txt).split(' ').forEach(push);
+    if (cur) out.push(cur);
+    if (out.length > max) { let l = out[max - 1]; while (l && x.measureText(l + '…').width > maxW) l = l.slice(0, -1); out.length = max; out[max - 1] = l + '…'; }   // 넘치면 말줄임
+    return out; };
+  const nameLines = wrap(name, cw - 84, '600 12.5px ' + F);
+  const infoLines = info ? wrap(info, cw - 60, '400 10.5px ' + F, 2) : [];   // 긴 오류 문구는 두 줄까지 · 카드 밖으로 나가지 않게
+  const bodyLines = [].concat(...T.lines.map(l => wrap(l, cw - 60, '400 11.5px ' + F)));
+  const H = 176 + nameLines.length * 17 + (bodyLines.length * 18) + (infoLines.length ? 8 + infoLines.length * 14 : 0);
+  c.height = H * S; x.setTransform(S, 0, 0, S, 0, 0);
+  const rr = (px, py, pw, ph, r) => { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + pw, py, px + pw, py + ph, r); x.arcTo(px + pw, py + ph, px, py + ph, r); x.arcTo(px, py + ph, px, py, r); x.arcTo(px, py, px + pw, py, r); x.closePath(); };
+  rr(0.5, 0.5, cw - 1, H - 1, 14); x.fillStyle = '#fff'; x.fill(); x.strokeStyle = '#d6dde8'; x.lineWidth = 1; x.stroke();
+  x.save(); rr(0.5, 0.5, cw - 1, H - 1, 14); x.clip(); x.fillStyle = T.accent; x.fillRect(0, 0, cw, 5); x.restore();
+  const cx = cw / 2, iy = 46;
+  x.beginPath(); x.arc(cx, iy, 24, 0, Math.PI * 2); x.fillStyle = T.bg; x.fill(); x.strokeStyle = T.border; x.lineWidth = 1.2; x.stroke();
+  x.strokeStyle = T.accent; x.fillStyle = T.accent; x.lineWidth = 2.2; x.lineCap = 'round'; x.lineJoin = 'round';
+  if (T.icon === 'lock') { x.beginPath(); x.arc(cx, iy - 4, 7, Math.PI, 0); x.stroke(); rr(cx - 10, iy - 3, 20, 15, 3); x.fill(); x.fillStyle = '#fff'; x.beginPath(); x.arc(cx, iy + 4, 2, 0, Math.PI * 2); x.fill(); }
+  else if (T.icon === 'link') { x.beginPath(); x.moveTo(cx - 9, iy + 4); x.lineTo(cx - 3, iy - 2); x.moveTo(cx + 3, iy + 2); x.lineTo(cx + 9, iy - 4); x.moveTo(cx - 6, iy - 6); x.lineTo(cx + 6, iy + 6); x.stroke(); }
+  else { x.beginPath(); x.moveTo(cx, iy - 11); x.lineTo(cx + 12, iy + 9); x.lineTo(cx - 12, iy + 9); x.closePath(); x.stroke(); x.beginPath(); x.moveTo(cx, iy - 3); x.lineTo(cx, iy + 3); x.stroke(); x.beginPath(); x.arc(cx, iy + 6.5, 1.3, 0, Math.PI * 2); x.fill(); }
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = '#0f2744'; x.font = '700 17px ' + F; x.fillText(T.title, cx, 92);
+  x.fillStyle = '#6b7a90'; x.font = '400 11px ' + F; x.fillText(T.sub, cx, 111);
+  x.strokeStyle = '#e6ebf2'; x.lineWidth = 1; x.beginPath(); x.moveTo(28, 128); x.lineTo(cw - 28, 128); x.stroke();
+  let y = 146;
+  const chipH = 14 + nameLines.length * 17;
+  rr(28, y - 8, cw - 56, chipH, 8); x.fillStyle = '#f5f7fa'; x.fill();
+  x.fillStyle = '#1f2937'; x.font = '600 12.5px ' + F;
+  nameLines.forEach((l, i) => x.fillText((i === 0 ? '📎 ' : '') + l, cx, y + 6 + i * 17));
+  y += chipH + 6;
+  x.fillStyle = '#374151'; x.font = '400 11.5px ' + F;
+  bodyLines.forEach((l, i) => x.fillText(l, cx, y + 8 + i * 18));
+  y += bodyLines.length * 18 + 6;
+  if (infoLines.length) { x.fillStyle = '#8a94a6'; x.font = '400 10.5px ' + F; infoLines.forEach((l, i) => x.fillText(l, cx, y + 8 + i * 14)); }
+  return apsU8FromDataUrl(c.toDataURL('image/png'));
+}
+function apsAttachOpt(o) {
+  o = o || {};
+  return { token: o.token || '', header: o.header, label: o.label == null ? '첨부파일: ' : o.label,
+    A4W: o.A4W || 595, A4H: o.A4H || 842, hdrH: o.hdrH || 22, marginPt: o.marginPt == null ? 34 : o.marginPt, onFile: o.onFile || null };
+}
+// 안내 페이지 한 장 — 위에 머리띠, 가운데 카드
+async function apsAddNoticePage(doc, kind, name, info, opt) {
+  const o = apsAttachOpt(opt);
+  const pg = doc.addPage([o.A4W, o.A4H]);
+  const sfx = { encrypted: 'encrypted', nolink: 'link missing', failed: 'conversion failed' }[kind] || '';
+  pg.drawImage(await doc.embedPng(await apsPngBytes(o.header(o.label + name + (sfx ? ' (' + sfx + ')' : '')))), { x: 0, y: o.A4H - o.hdrH, width: o.A4W, height: o.hdrH });
+  const card = await doc.embedPng(await apsNoticeCardBytes(kind, name, info));
+  const cw = 430, ch = card.height / card.width * cw;     // 2배로 그린 카드를 430pt 폭으로
+  pg.drawImage(card, { x: (o.A4W - cw) / 2, y: (o.A4H - o.hdrH) / 2 - ch / 2 + 20, width: cw, height: ch });
+}
+// 내려받은 첨부 한 건(이미지 · PDF 바이트)을 붙인다. 암호화 PDF 는 안내 카드. 실패는 호출한 쪽으로 던진다.
+async function apsAppendAttachmentBytes(doc, name, bytes, opt) {
+  const o = apsAttachOpt(opt);
+  const ext = String(name || '').split('.').pop().toLowerCase();
+  const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const hdr = async () => doc.embedPng(await apsPngBytes(o.header(o.label + name)));   // 머리띠는 첨부 한 건에 한 번만 넣고 쪽마다 다시 쓴다
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+    const img = ['jpg', 'jpeg'].includes(ext) ? await doc.embedJpg(u8) : await doc.embedPng(u8);   // gif · webp 는 pdf-lib 가 못 읽어 「변환 실패」 카드가 된다(예전과 같음)
+    const hdrImg = await hdr();
+    const pg = doc.addPage([o.A4W, o.A4H]);
+    pg.drawImage(hdrImg, { x: 0, y: o.A4H - o.hdrH, width: o.A4W, height: o.hdrH });
+    const pw = o.A4W - o.marginPt * 2, ph = o.A4H - o.hdrH - o.marginPt * 2;
+    const ratio = Math.min(pw / img.width, ph / img.height);
+    pg.drawImage(img, { x: o.marginPt, y: o.A4H - o.hdrH - o.marginPt - img.height * ratio, width: img.width * ratio, height: img.height * ratio });
+    return;
+  }
+  const src = await PDFLib.PDFDocument.load(u8, { ignoreEncryption: true });
+  if (src.isEncrypted) {
+    // ignoreEncryption 은 「예외를 내지 말라」 는 뜻이지 복호화가 아니다 — 그대로 붙이면 암호문이 붙어 백지 · 오류 페이지가 된다
+    let n = null; try { n = src.getPageCount(); } catch (e) {}   // 객체 스트림까지 잠긴 PDF 는 쪽수도 못 읽는다 — 그래도 「암호화」 카드로
+    await apsAddNoticePage(doc, 'encrypted', name, 'PDF  ·  ' + (n == null ? '' : n + (n === 1 ? ' page' : ' pages') + '  ·  ') + Math.round(u8.length / 1024) + ' KB  ·  Encrypted', o);
+    return;
+  }
+  const pages = await doc.copyPages(src, src.getPageIndices());
+  const hdrImg = await hdr();
+  for (const pg of pages) {
+    doc.addPage(pg);
+    const vf = apsPdfVisualFrame(pg);
+    vf.begin(); pg.drawImage(hdrImg, { x: 0, y: vf.height - o.hdrH, width: vf.width, height: o.hdrH }); vf.end();
+  }
+}
+// 첨부 목록([{name, driveId, itemId, error?}])을 차례로 내려받아 붙인다 — 한 건이 실패해도 나머지는 계속한다
+async function apsAppendAttachmentPages(doc, items, opt) {
+  const o = apsAttachOpt(opt);
+  const G = 'https://graph.microsoft.com/v1.0';
+  for (const it of (items || [])) {
+    const name = String((it && it.name) || '').trim();
+    if (!name) continue;
+    if (o.onFile) { try { o.onFile(name); } catch (e) {} }
+    try {
+      if (it.error) { await apsAddNoticePage(doc, 'failed', name, 'Error: ' + String(it.error).slice(0, 80), o); continue; }
+      if (!it.driveId || !it.itemId) { await apsAddNoticePage(doc, 'nolink', name, '', o); continue; }
+      const ext = name.split('.').pop().toLowerCase();
+      const isImg = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+      const url = G + '/drives/' + it.driveId + '/items/' + it.itemId + '/content' + (isImg || ext === 'pdf' ? '' : '?format=pdf');   // Office 문서는 Graph 가 PDF 로 바꿔 준다
+      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + o.token } });
+      if (!res.ok) throw new Error((isImg || ext === 'pdf' ? 'HTTP ' : '변환실패 ') + res.status);
+      await apsAppendAttachmentBytes(doc, name, new Uint8Array(await res.arrayBuffer()), o);
+    } catch (e) {
+      console.warn('첨부파일 처리 실패:', name, e && e.message);
+      try { await apsAddNoticePage(doc, 'failed', name, 'Error: ' + String((e && e.message) || e || '').slice(0, 80), o); }
+      catch (e2) { console.warn('안내 페이지 생성 실패:', e2.message); }
+    }
+  }
+}
+/* ═══ /APS-ATTACH v1 ═══════════════════════════════════════════════════════════════════════════ */
+
 // 티켓 상세 내용 PDF 출력 — FA Registration의 구현을 그대로 이식.
 // 상세 영역을 html2canvas로 캡처해 A4 페이지로 분할하고, 첨부파일은 pdf-lib으로 병합한다.
 // 이미지 첨부는 직접 삽입, Office/PDF 첨부는 Graph API의 PDF 변환을 거쳐 붙인다.
@@ -2485,71 +2662,15 @@ async function exportSscDetailPdf() {
         const drivePath = relPath.replace(/^AttachedFiles\//, '');
         const meta = await api('/drives/' + legacyDrive.id + '/root:/' + encodeURIComponent(drivePath).replace(/%2F/g, '/'));
         legacyLinks.push({ name, driveId: legacyDrive.id, itemId: meta.id });
-      } catch(e) { console.warn('구형 첨부파일 조회 실패:', name, e.message); }
+      } catch(e) { console.warn('구형 첨부파일 조회 실패:', name, e.message); legacyLinks.push({ name, driveId: '', itemId: '', error: '구형 첨부 조회 실패 ' + e.message }); }   // 조용히 빠지지 않게 — 「변환 실패」 카드(10-06)
     }
     const fileLinks = [...newLinks, ...legacyLinks];
 
-    for(const link of fileLinks) {
-      const name = link.name;
-      if(!name) continue;
-      const dId = link.driveId;
-      const iId = link.itemId;
-      if(!dId || !iId) continue;
-      const ext = name.split('.').pop().toLowerCase();
-      const imgExts = ['jpg','jpeg','png','gif','webp'];
-
-      btn.innerHTML = '⏳ ' + name.substring(0,20) + '...';
-
-      try {
-        if(imgExts.includes(ext)) {
-          const res = await fetch('https://graph.microsoft.com/v1.0/drives/'+dId+'/items/'+iId+'/content', {headers:{Authorization:'Bearer '+_t}});
-          if(!res.ok) throw new Error(res.status);
-          const imgAb = await res.arrayBuffer();
-          const attachPage = mainDoc.addPage([A4W, A4H]);
-          const aHdrFn = makeHdrPng('첨부파일: '+name, _ds);
-          const aHdrBytes = await dataUrlToUint8(aHdrFn);
-          const aHdrImg = await mainDoc.embedPng(aHdrBytes);
-          attachPage.drawImage(aHdrImg, {x:0, y:A4H-hdrH, width:A4W, height:hdrH});
-          let embImg;
-          if(['jpg','jpeg'].includes(ext)) embImg = await mainDoc.embedJpg(new Uint8Array(imgAb));
-          else embImg = await mainDoc.embedPng(new Uint8Array(imgAb));
-          const {width:iW, height:iH} = embImg;
-          const ratio = Math.min(printW_pt/iW, (A4H-hdrH-marginPt*2)/iH);
-          attachPage.drawImage(embImg, {
-            x: marginPt,
-            y: A4H - hdrH - marginPt - iH*ratio,
-            width: iW*ratio, height: iH*ratio
-          });
-        } else {
-          const convertUrl = ext === 'pdf'
-            ? 'https://graph.microsoft.com/v1.0/drives/'+dId+'/items/'+iId+'/content'
-            : 'https://graph.microsoft.com/v1.0/drives/'+dId+'/items/'+iId+'/content?format=pdf';
-          const res = await fetch(convertUrl, {headers:{Authorization:'Bearer '+_t}});
-          if(!res.ok) throw new Error('변환실패 '+res.status);
-          const pdfBytes = new Uint8Array(await res.arrayBuffer());
-
-          const srcDoc = await PDFDocument.load(pdfBytes, {ignoreEncryption:true});
-          const copiedPages = await mainDoc.copyPages(srcDoc, srcDoc.getPageIndices());
-
-          const aHdrFn2 = makeHdrPng('첨부파일: '+name, _ds);
-          const aHdrBytes2 = await dataUrlToUint8(aHdrFn2);
-
-          for(const pg of copiedPages) {
-            mainDoc.addPage(pg);
-            const aHdrImg2 = await mainDoc.embedPng(aHdrBytes2);
-            const {width:pgW, height:pgH} = pg.getSize();
-            pg.drawImage(aHdrImg2, {x:0, y:pgH-hdrH, width:pgW, height:hdrH});
-          }
-        }
-      } catch(e) {
-        console.warn('첨부파일 처리 실패:', name, e.message);
-        const errPage = mainDoc.addPage([A4W, A4H]);
-        const aHdrFn3 = makeHdrPng('첨부파일: '+name+' (변환 실패)', _ds);
-        const aHdrBytes3 = await dataUrlToUint8(aHdrFn3);
-        const aHdrImg3 = await mainDoc.embedPng(aHdrBytes3);
-        errPage.drawImage(aHdrImg3, {x:0, y:A4H-hdrH, width:A4W, height:hdrH});
-      }
-    }
+    // ── 첨부파일 — APS 공통 첨부 병합(APS-ATTACH v1 · 10-06 일원화, ACC Voucher 기준) ──
+    //    머리띠는 첨부 페이지의 보이는 영역 · 회전을 보정해 맨 위에, 붙일 수 없는 첨부(암호화 · 링크 없음 · 변환 실패)는 안내 카드 한 장
+    await apsAppendAttachmentPages(mainDoc, fileLinks, {
+      token: _t, header: t => dataUrlToUint8(makeHdrPng(t, _ds)), A4W, A4H, hdrH, marginPt,
+      onFile: n => { btn.textContent = '⏳ ' + n.substring(0, 20) + '...'; } });   // 파일 이름은 글자로만(HTML 해석 안 함)
 
     // ── 최종 저장 ──
     const finalBytes = await mainDoc.save();
