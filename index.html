@@ -337,9 +337,17 @@ html.aps-wtx #app{transition:max-width .2s ease}
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Dynamic loading ── */
-#dyn-loading { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.92); z-index: 500; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
-#dyn-loading.show { display: flex; }
-.dyn-spinner { width: 40px; height: 40px; border: 3px solid #edebe9; border-top: 3px solid #0078d4; border-radius: 50%; animation: spin .8s linear infinite; }
+/* 데이터 로딩 화면(APS 공통 · 10-07 · aps-dyn-card) — BP Master 의 처리 중 카드와 같은 모양:
+   어두운 반투명 배경(rgba(0,0,0,.3)) 위에 흰 카드(모서리 6px · 안쪽 28px 40px · 32px 회전 표시 · 15px 글자). 상세 창을 열어 둔 채 목록을 다시 읽을 때는 예전처럼 상세 창이 위에 남는다.
+   예전에는 화면 전체를 흰색(.92)으로 덮어 시스템마다 달랐다. 마크업 · 함수(dynLoadStart/End · dynLoad) · 호출은 그대로다. */
+#dyn-loading{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:997;align-items:center;justify-content:center}   /* 997: 상세 모달(998) · 처리 중 카드(999) · 확인 · 안내 창 아래, 본문 위 — 예전(500)과 같은 층 관계 */
+#dyn-loading.show{display:flex}
+#dyn-loading .dyn-box{background:#fff;border-radius:6px;padding:28px 40px;font-size:15px;color:#323130;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:min(92vw,420px);text-align:center}
+#dyn-loading .dyn-spinner{width:32px;height:32px;border:3px solid #edebe9;border-top:3px solid #0078d4;border-radius:50%;animation:dynSpin .8s linear infinite}
+#dyn-loading .dyn-msg{font-size:15px;color:#323130;font-weight:400;display:flex;align-items:center;gap:6px}
+#dyn-loading .dyn-sub{font-size:.78rem;color:#605e5c;line-height:1.5}
+#dyn-loading .dyn-sub:empty{display:none}
+@keyframes dynSpin{to{transform:rotate(360deg)}}
 .dyn-dots { display: inline-flex; gap: 3px; }
 .dyn-dots span { width: 4px; height: 4px; background: #0078d4; border-radius: 50%; animation: dotPulse 1.2s infinite; }
 .dyn-dots span:nth-child(2) { animation-delay: .2s; }
@@ -864,10 +872,12 @@ html.aps-wtx #app{transition:max-width .2s ease}
 
 <!-- ══ Loading ══ -->
 <div id="dyn-loading">
-  <div class="dyn-spinner"></div>
-  <div style="font-size:.88rem;color:#323130;font-weight:500;display:flex;align-items:center;gap:6px">
-    <span id="dyn-msg">데이터 불러오는 중</span>
-    <div class="dyn-dots"><span></span><span></span><span></span></div>
+  <div class="dyn-box">
+    <div class="dyn-spinner"></div>
+    <div class="dyn-msg">
+      <span id="dyn-msg">데이터 불러오는 중</span>
+      <div class="dyn-dots"><span></span><span></span><span></span></div>
+    </div>
   </div>
 </div>
 <div id="loading"><div class="loading-box"><div class="spinner"></div><span>처리 중입니다...</span></div></div>
