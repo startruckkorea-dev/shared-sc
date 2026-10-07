@@ -542,6 +542,7 @@ html.aps-wtx #app{transition:max-width .2s ease}
 <!-- ══ App ══ -->
 <div id="app">
   <div class="header aps-hdr">
+    <div class="aps-band"><span class="aps-band-crumb"><b>STK APS</b><i>›</i><span>SSC</span></span><a id="btn-back-aps" href="https://aps.startruckkorea.com/" target="_self" title="STK 통합 결재함" style="display:none" class="aps-band-go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>APS 바로가기</span></a></div>
     <div>
       <div class="title">SSC</div>
       <div style="font-size:11px;color:#605e5c;margin-top:3px">Shared Service Center — Star Truck Korea</div>
@@ -564,7 +565,7 @@ html.aps-wtx #app{transition:max-width .2s ease}
       <div class="aps-acct"><button type="button" class="aps-acct-btn" id="aps-acct-btn" title="계정" aria-haspopup="menu" aria-expanded="false"><span class="aps-av" id="aps-av"></span><span class="aps-acct-nm" id="aps-acct-nm"></span><span class="aps-acct-ch">▾</span></button><div class="aps-acct-menu" id="aps-acct-menu" hidden role="menu"><div class="mh"><span class="aps-av lg" id="aps-av2"></span><span id="user-name" class="hdr-user"></span></div><button type="button" class="aps-acct-lo" role="menuitem" onclick="signOut()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4v18h-4M10 17l5-5-5-5M3 12h12"/></svg>로그아웃</button></div></div>
       <!-- 기본은 숨김. 허용 대상(CONTACT/ACCESS/ADMIN)으로 확인된 경우에만 표시한다.
            반대로 하면 판정 전까지 버튼이 보였다가 사라져 깜빡인다. -->
-      <div class="aps-act"><button type="button" class="aps-year" id="aps-year-btn" title="조회 연도 (한국 시간 기준)" aria-haspopup="listbox" aria-expanded="false"><span id="aps-year-v">2026</span><small id="aps-year-tag">현재</small><span class="aps-year-ch">▾</span></button><div class="aps-ymenu-bg" id="aps-ymenu-bg" hidden></div><div class="aps-ymenu" id="aps-ymenu" hidden><div class="grab"></div><div class="aps-ymenu-hd"><b>조회 연도</b><span>한국 시간 기준</span></div><ul id="aps-ymenu-list" role="listbox"></ul></div><a id="btn-back-aps" href="https://aps.startruckkorea.com/" target="_self" title="STK 통합 결재함" class="aps-back" style="display:none"><span class="ic">📬</span><span>돌아가기</span></a></div><script>
+      <div class="aps-act"><button type="button" class="aps-year" id="aps-year-btn" title="조회 연도 (한국 시간 기준)" aria-haspopup="listbox" aria-expanded="false"><span id="aps-year-v">2026</span><small id="aps-year-tag">현재</small><span class="aps-year-ch">▾</span></button><div class="aps-ymenu-bg" id="aps-ymenu-bg" hidden></div><div class="aps-ymenu" id="aps-ymenu" hidden><div class="grab"></div><div class="aps-ymenu-hd"><b>조회 연도</b><span>한국 시간 기준</span></div><ul id="aps-ymenu-list" role="listbox"></ul></div></div><script>
 /* 계정 메뉴(APS 공통 · 10-07 · aps-acct) — 아바타 + 짧은 이름. #user-name 은 setHdrUser 가 채우고, 여기서는 그 내용을 읽어 아바타만 그린다 */
 (function () {
   var btn = document.getElementById('aps-acct-btn'), menu = document.getElementById('aps-acct-menu'), src = document.getElementById('user-name');
@@ -1123,6 +1124,43 @@ body.aps-year-off #aps-year-empty{display:block!important}
 @media (max-width:640px){
   .aps-acct{justify-content:flex-start}
   .aps-acct-menu{right:auto;left:0}
+}
+/* 헤더 시안 V3(APS 공통 · 10-08 · aps-v3) — 남색 경로 띠 + 글자형 연도 · 계정 + ✉ BU Admin. 메뉴 동작(연도 · 계정)은 그대로 */
+.aps-hdr{flex-wrap:wrap;padding-top:0!important}
+.aps-band{flex:0 0 calc(100% + 48px);order:-1;display:flex;align-items:center;justify-content:space-between;gap:12px;height:28px;box-sizing:border-box;margin:0 -24px 12px;padding:0 24px;background:#0f2744;color:rgba(255,255,255,.78);font-size:11px;font-family:'Segoe UI','Malgun Gothic',sans-serif;border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0;min-width:0}
+.aps-band-crumb{display:inline-flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aps-band-crumb b{color:#fff;font-weight:700;letter-spacing:.3px}
+.aps-band-crumb i{font-style:normal;color:rgba(255,255,255,.45)}
+.aps-band-go{display:inline-flex;align-items:center;gap:5px;color:#fff;font-weight:600;text-decoration:none;white-space:nowrap;flex:none}
+.aps-band-go:hover{text-decoration:underline}
+.aps-band-go svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.aps-sub{font-size:12px;color:#605e5c;margin-top:3px}
+/* 오른쪽: 연도 | 계정 을 제목 줄 높이에 한 줄로. (inline style 의 column 을 이기도록 !important) */
+.aps-hdr-r{flex-direction:row!important;align-items:center!important;gap:4px!important;flex:none}
+.aps-hdr>*:not(.aps-band):not(.aps-hdr-r){flex:1 1 240px;min-width:0}   /* 왼쪽 열이 줄어들어 중간 폭(641~700px)에서 오른쪽 열이 셋째 줄로 내려가지 않게 */
+.aps-hdr-r .aps-act{order:1}
+.aps-hdr-r .aps-acct{order:2;align-items:center}
+.aps-hdr-r .aps-acct::before{content:"";width:1px;height:14px;background:#e1dfdd;margin:0 6px 0 2px}
+.aps-year{border-color:transparent;background:transparent;padding:0 6px;height:28px}
+.aps-year:hover{background:#f3f2f1;border-color:transparent}
+.aps-year[aria-expanded="true"]{background:#e8f3fc;box-shadow:none;border-color:transparent}
+.aps-year.off{background:#fffbea;border-color:transparent}
+.aps-acct-btn{border-color:transparent;background:transparent;height:30px;padding:0 6px 0 2px}
+.aps-acct-btn:hover{background:#f3f2f1;border-color:transparent}
+.aps-acct-btn[aria-expanded="true"]{background:#e8f3fc;box-shadow:none;border-color:transparent}
+.aps-av{width:24px;height:24px;font-size:10px}
+/* BU Admin 줄 — ✉ + 회색 라벨 + 파란 메일 */
+.aps-hdr .hdr-contact{margin-top:9px;font-size:11.5px;row-gap:2px}
+.aps-hdr .hdr-contact-tag{color:#8a8886;font-weight:500;padding-left:17px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8886' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h16v16H4z'/%3E%3Cpath d='m4 7 8 6 8-6'/%3E%3C/svg%3E") no-repeat left center/12px 12px}
+.aps-hdr .hdr-contact-row:not(:first-child) .hdr-contact-tag{background:none}
+.aps-hdr .hdr-contact-mail,.aps-hdr .hdr-contact-mail a{color:#0b5fa5;font-weight:600}
+@media (max-width:640px){
+  .aps-band{margin-bottom:10px;flex:none;height:28px}   /* 세로 배치에서는 flex-basis 가 높이에 걸린다 — 띠 높이 고정 */
+  .aps-acct-menu{left:auto;right:0}                    /* 계정 단추가 오른쪽 끝이라 메뉴도 오른쪽 기준(hdr-f 의 left:0 을 되돌림) */
+  .aps-hdr-r{width:100%;justify-content:space-between;padding-top:10px;border-top:1px solid #f0efed;order:9}
+  .aps-hdr-r .aps-act{padding-top:0;border-top:0;justify-content:flex-start}
+  .aps-hdr-r .aps-acct::before{display:none}
+  .aps-year{padding-left:0}
 }
 </style>
 
