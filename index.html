@@ -1149,10 +1149,9 @@ body.aps-year-off #aps-year-empty{display:block!important}
 .aps-acct-btn:hover{background:#f3f2f1;border-color:transparent}
 .aps-acct-btn[aria-expanded="true"]{background:#e8f3fc;box-shadow:none;border-color:transparent}
 .aps-av{width:24px;height:24px;font-size:10px}
-/* BU Admin 줄 — ✉ + 회색 라벨 + 파란 메일 */
-.aps-hdr .hdr-contact{margin-top:9px;font-size:11.5px;row-gap:2px}
-.aps-hdr .hdr-contact-tag{color:#8a8886;font-weight:500;padding-left:17px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8886' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h16v16H4z'/%3E%3Cpath d='m4 7 8 6 8-6'/%3E%3C/svg%3E") no-repeat left center/12px 12px}
-.aps-hdr .hdr-contact-row:not(:first-child) .hdr-contact-tag{background:none}
+/* BU Admin 줄(aps-v3b) — 아이콘 없이 회색 라벨 + 파란 메일, 줄 간격 촘촘하게. 틀 · 구분선(SSC-UAT) 은 없앤다 */
+.aps-hdr .hdr-contact{margin-top:8px;font-size:11.5px;line-height:1.5;row-gap:0;background:none;border:0;border-radius:0;padding:0}
+.aps-hdr .hdr-contact-tag{color:#8a8886;font-weight:500;padding:0;margin-right:10px;border:0;background:none}
 .aps-hdr .hdr-contact-mail,.aps-hdr .hdr-contact-mail a{color:#0b5fa5;font-weight:600}
 @media (max-width:640px){
   .aps-band{margin-bottom:10px;flex:none;height:28px}   /* 세로 배치에서는 flex-basis 가 높이에 걸린다 — 띠 높이 고정 */
@@ -1162,6 +1161,13 @@ body.aps-year-off #aps-year-empty{display:block!important}
   .aps-hdr-r .aps-acct::before{display:none}
   .aps-year{padding-left:0}
 }
+/* 헤더 V3 보정(APS 공통 · 10-08 · aps-v3b): 오른쪽 「연도 | 계정」을 제목 줄에 맞춤 · h1 기본 여백 제거 · 폰에서 왼쪽 열 flex-basis 가 높이로 걸리던 것 해제 */
+@media (min-width:641px){
+  .aps-hdr{align-items:flex-start!important;row-gap:0}   /* BP 의 .header{align-items:center} 를 이긴다 · ACC Others 의 .hd{gap:16px} 가 띠 아래 줄 간격으로도 걸리던 것 */
+  .aps-hdr-r{margin-top:-4px}                   /* 30px 단추의 글자 중심을 제목 글자 중심에 */
+}
+.aps-hdr h1{margin:0}
+@media (max-width:640px){.aps-hdr>*:not(.aps-band):not(.aps-hdr-r){flex:none}}
 </style>
 
 <footer style="margin-top:48px;padding:18px 28px;border-top:1px solid #e2e8f0">
