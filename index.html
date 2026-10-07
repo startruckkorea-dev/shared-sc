@@ -541,7 +541,7 @@ html.aps-wtx #app{transition:max-width .2s ease}
 
 <!-- ══ App ══ -->
 <div id="app">
-  <div class="header">
+  <div class="header aps-hdr">
     <div>
       <div class="title">SSC</div>
       <div style="font-size:11px;color:#605e5c;margin-top:3px">Shared Service Center — Star Truck Korea</div>
@@ -560,18 +560,14 @@ html.aps-wtx #app{transition:max-width .2s ease}
           </div>
       </div>
     </div>
-    <div class="header-right" style="flex-direction:column;align-items:flex-end;gap:8px">
+    <div class="aps-hdr-r header-right" style="flex-direction:column;align-items:flex-end;gap:8px">
       <div style="display:flex;align-items:center;gap:10px">
         <span id="user-name" class="hdr-user"></span>
         <button id="btn-logout" onclick="signOut()">로그아웃</button>
       </div>
       <!-- 기본은 숨김. 허용 대상(CONTACT/ACCESS/ADMIN)으로 확인된 경우에만 표시한다.
            반대로 하면 판정 전까지 버튼이 보였다가 사라져 깜빡인다. -->
-      <a id="btn-back-aps" href="https://aps.startruckkorea.com/" target="_self"
-        style="text-decoration:none;display:none;align-items:center;gap:7px;background:#0078d4;color:#fff;border-radius:6px;padding:7px 14px;font-size:.8rem;font-weight:600;font-family:'Segoe UI',sans-serif;letter-spacing:-.2px;box-shadow:0 1px 4px rgba(0,120,212,.25);transition:background .15s"
-        onmouseover="this.style.background='#106ebe'" onmouseout="this.style.background='#0078d4'">
-        <span style="font-size:1rem;line-height:1">📬</span><span>돌아가기</span>
-      </a>
+      <div class="aps-act"><span class="aps-year" title="조회 기준 연도 (한국 시간)"><span id="aps-year-v">2026</span><small>현재</small></span><a id="btn-back-aps" href="https://aps.startruckkorea.com/" target="_self" title="STK 통합 결재함" class="aps-back" style="display:none"><span class="ic">📬</span><span>돌아가기</span></a></div><script>(function(){var y=new Date(Date.now()+9*36e5).getUTCFullYear();if(y>2026)document.getElementById("aps-year-v").textContent=y;})();</script>
     </div>
   </div>
 
@@ -977,6 +973,23 @@ html.aps-wtx #app{transition:max-width .2s ease}
 /* 빈 안내 줄(APS 공통 · 10-07 · aps-empty-row) — 「신청 내역이 없습니다.」 「결재 대기 항목이 없습니다.」 「조회 결과가 없습니다.」 등
    목록 표의 한 칸짜리 안내 줄은 시스템 어디서나 같은 모양: 가운데 · 위아래 32px · 회색(#605e5c) · 13px. 인라인 style 보다 우선. */
 .list-table tbody > tr > td[colspan]:only-child, table.lst tbody > tr > td[colspan]:only-child, .tbl-wrap > .voucher-table tbody > tr > td[colspan]:only-child, tbody#list-body > tr > td[colspan]:only-child, tbody#appr-body > tr > td[colspan]:only-child, tbody#admin-body > tr > td[colspan]:only-child{text-align:center!important;padding:32px 12px!important;color:#605e5c!important;font-size:13px!important;font-weight:400!important;line-height:1.5!important;white-space:normal!important;height:auto!important}
+/* 헤더 오른쪽 동작 줄(APS 공통 · 10-07 · aps-hdr-f) — 연도 칩 「2026 현재」 + 알약 돌아가기. 둘 다 높이 30px · 12.5px 로 같은 크기.
+   연도는 한국 시간(KST) 기준 올해(표시 전용 · 연도 전환은 다음 단계). 폰(≤640px)은 헤더를 세로로 쌓고 동작 줄 위에 얇은 선을 둬 BU Admin 과 겹치지 않는다. */
+.aps-act{display:flex;align-items:center;gap:8px}
+.aps-year{display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;border:1px solid #c8c6c4;border-radius:999px;padding:0 10px 0 12px;font-size:12.5px;font-weight:700;color:#201f1e;background:#fff;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1;font-family:'Segoe UI','Malgun Gothic',sans-serif}
+.aps-year small{font-weight:600;color:#107c10;background:#dff6dd;border-radius:9px;padding:2px 7px;font-size:10px;line-height:1.2}
+.aps-back{text-decoration:none;display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;background:#0078d4;color:#fff;border-radius:999px;padding:0 14px 0 11px;font-size:12.5px;font-weight:600;letter-spacing:-.2px;box-shadow:0 1px 4px rgba(0,120,212,.25);transition:background .15s;white-space:nowrap;line-height:1;font-family:'Segoe UI','Malgun Gothic',sans-serif}
+.aps-back:hover{background:#106ebe}
+.aps-back .ic{font-size:14px;line-height:1}
+@media (max-width:640px){
+  .aps-hdr{flex-direction:column;align-items:stretch;gap:12px}
+  .aps-hdr-r{align-items:stretch!important;width:100%;max-width:none}
+  .aps-hdr-r>div:first-child{justify-content:space-between}
+  .aps-hdr-r .hdr-user{align-items:flex-start;min-width:0;flex:1 1 auto}
+  .aps-hdr-r>div:first-child>button{white-space:nowrap;flex:none}   /* 이름이 길어도 로그아웃이 두 줄로 꺾이지 않게 — 이름 쪽이 … 로 줄어든다 */
+  .aps-hdr-r .hdr-user-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .aps-hdr-r .aps-act{justify-content:space-between;padding-top:10px;border-top:1px solid #f0efed}
+}
 </style>
 
 <footer style="margin-top:48px;padding:18px 28px;border-top:1px solid #e2e8f0">
