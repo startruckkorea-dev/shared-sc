@@ -974,6 +974,9 @@ html.aps-wtx #app{transition:max-width .2s ease}
 .appr-info input[readonly]{background:#f3f2f1;color:#605e5c}
 .appr-block .appr-title::before,.appr-title::before{content:none!important;display:none!important}
 @media (max-width:640px){.appr-select-row{grid-template-columns:1fr}.appr-info{grid-template-columns:1fr}}
+/* 빈 안내 줄(APS 공통 · 10-07 · aps-empty-row) — 「신청 내역이 없습니다.」 「결재 대기 항목이 없습니다.」 「조회 결과가 없습니다.」 등
+   목록 표의 한 칸짜리 안내 줄은 시스템 어디서나 같은 모양: 가운데 · 위아래 32px · 회색(#605e5c) · 13px. 인라인 style 보다 우선. */
+.list-table tbody > tr > td[colspan]:only-child, table.lst tbody > tr > td[colspan]:only-child, .tbl-wrap > .voucher-table tbody > tr > td[colspan]:only-child, tbody#list-body > tr > td[colspan]:only-child, tbody#appr-body > tr > td[colspan]:only-child, tbody#admin-body > tr > td[colspan]:only-child{text-align:center!important;padding:32px 12px!important;color:#605e5c!important;font-size:13px!important;font-weight:400!important;line-height:1.5!important;white-space:normal!important;height:auto!important}
 </style>
 
 <footer style="margin-top:48px;padding:18px 28px;border-top:1px solid #e2e8f0">
