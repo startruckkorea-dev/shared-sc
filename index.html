@@ -567,7 +567,55 @@ html.aps-wtx #app{transition:max-width .2s ease}
       </div>
       <!-- 기본은 숨김. 허용 대상(CONTACT/ACCESS/ADMIN)으로 확인된 경우에만 표시한다.
            반대로 하면 판정 전까지 버튼이 보였다가 사라져 깜빡인다. -->
-      <div class="aps-act"><span class="aps-year" title="조회 기준 연도 (한국 시간)"><span id="aps-year-v">2026</span><small>현재</small></span><a id="btn-back-aps" href="https://aps.startruckkorea.com/" target="_self" title="STK 통합 결재함" class="aps-back" style="display:none"><span class="ic">📬</span><span>돌아가기</span></a></div><script>(function(){var y=new Date(Date.now()+9*36e5).getUTCFullYear();if(y>2026)document.getElementById("aps-year-v").textContent=y;})();</script>
+      <div class="aps-act"><button type="button" class="aps-year" id="aps-year-btn" title="조회 연도 (한국 시간 기준)" aria-haspopup="listbox" aria-expanded="false"><span id="aps-year-v">2026</span><small id="aps-year-tag">현재</small><span class="aps-year-ch">▾</span></button><div class="aps-ymenu-bg" id="aps-ymenu-bg" hidden></div><div class="aps-ymenu" id="aps-ymenu" hidden><div class="grab"></div><div class="aps-ymenu-hd"><b>조회 연도</b><span>한국 시간 기준</span></div><ul id="aps-ymenu-list" role="listbox"></ul></div><a id="btn-back-aps" href="https://aps.startruckkorea.com/" target="_self" title="STK 통합 결재함" class="aps-back" style="display:none"><span class="ic">📬</span><span>돌아가기</span></a></div><script>
+/* 연도 선택기(APS 공통 · 10-07 · aps-year-sel) — 2025 ~ KST 올해. 기본 = 데이터 사이트가 있는 가장 최근 연도.
+   SITES: 연도 → 데이터 사이트. 2027 사이트가 생기면 여기에 더하고 목록 조회 라우팅(다음 단계)을 붙인다. 파일 · 로그 · 설정은 그대로 지금 사이트. */
+window.apsYear = (function () {
+  var FIRST = 2025, HOME = 2026, SITES = { 2026: 'STK-DB' };
+  var CUR = new Date(Date.now() + 9 * 36e5).getUTCFullYear(); if (CUR < HOME) CUR = HOME;
+  var sel = HOME; for (var y = CUR; y >= FIRST; y--) if (SITES[y]) { sel = y; break; }
+  var btn = document.getElementById('aps-year-btn'), menu = document.getElementById('aps-ymenu'), bg = document.getElementById('aps-ymenu-bg'), ul = document.getElementById('aps-ymenu-list');
+  var tv = document.getElementById('aps-year-v'), tag = document.getElementById('aps-year-tag');
+  function sub(y) { return SITES[y] ? SITES[y] + ' 사이트' : (y < HOME ? '데이터 없음' : '사이트 준비 전'); }
+  function render() {
+    var s = '';
+    for (var y = CUR; y >= FIRST; y--) s += '<li role="option" data-y="' + y + '" class="' + (y === sel ? 'sel ' : '') + (SITES[y] ? '' : 'none') + '" aria-selected="' + (y === sel) + '"><i class="ck">✓</i><b>' + y + '</b>' + (y === CUR ? '<small>현재</small>' : '') + '<span class="sub">' + sub(y) + '</span></li>';
+    ul.innerHTML = s;
+  }
+  function card() {
+    var el = document.getElementById('aps-year-empty');
+    if (!el) {
+      var a = document.querySelector('#app .tabs'); if (!a) return null;
+      el = document.createElement('div'); el.id = 'aps-year-empty'; el.className = 'aps-year-empty';
+      a.insertAdjacentElement('afterend', el);
+    }
+    return el;
+  }
+  function apply() {
+    var off = !SITES[sel];
+    tv.textContent = sel; tag.style.display = sel === CUR ? '' : 'none'; btn.classList.toggle('off', off);
+    document.body.classList.toggle('aps-year-off', off);
+    if (off) {
+      var el = card();
+      if (el) el.innerHTML = '<div class="ic">📅</div><div class="t"><b>' + sel + '</b>년에는 ' + (sel < HOME ? 'APS 데이터가 없습니다' : '데이터 사이트가 아직 연결되지 않았습니다') + '</div>'
+        + '<div class="d">' + (sel < HOME ? 'APS 결재 시스템은 2026년 5월부터 사용을 시작했습니다.' : 'IT 에서 ' + sel + '년 사이트를 연결하면 이곳에서 조회할 수 있습니다.') + '</div>'
+        + '<button type="button" onclick="apsYear.set(' + HOME + ')">' + HOME + '년 보기</button>';
+    }
+    window.APS_YEAR = sel;
+    try { document.dispatchEvent(new CustomEvent('aps-year', { detail: { year: sel, off: off } })); } catch (e) {}
+  }
+  function open() { render(); menu.hidden = false; bg.hidden = false; btn.setAttribute('aria-expanded', 'true'); setTimeout(function () { document.addEventListener('click', onDoc); document.addEventListener('keydown', onKey, true); }, 0); }
+  function close() { menu.hidden = true; bg.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', onDoc); document.removeEventListener('keydown', onKey, true); }
+  function onDoc(e) { if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close(); }
+  function onKey(e) { if (e.key === 'Escape') { close(); btn.focus(); } }
+  function set(y) { y = +y; if (y < FIRST || y > CUR) return; sel = y; close(); apply(); }
+  btn.addEventListener('click', function (e) { e.stopPropagation(); menu.hidden ? open() : close(); });
+  bg.addEventListener('click', close);
+  ul.addEventListener('click', function (e) { var li = e.target.closest('li[data-y]'); if (li) set(li.dataset.y); });
+  apply();
+  return { get: function () { return sel; }, set: set, current: CUR, home: HOME, sites: SITES };
+})();
+</script>
     </div>
   </div>
 
@@ -976,8 +1024,50 @@ html.aps-wtx #app{transition:max-width .2s ease}
 /* 헤더 오른쪽 동작 줄(APS 공통 · 10-07 · aps-hdr-f) — 연도 칩 「2026 현재」 + 알약 돌아가기. 둘 다 높이 30px · 12.5px 로 같은 크기.
    연도는 한국 시간(KST) 기준 올해(표시 전용 · 연도 전환은 다음 단계). 폰(≤640px)은 헤더를 세로로 쌓고 동작 줄 위에 얇은 선을 둬 BU Admin 과 겹치지 않는다. */
 .aps-act{display:flex;align-items:center;gap:8px}
-.aps-year{display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;border:1px solid #c8c6c4;border-radius:999px;padding:0 10px 0 12px;font-size:12.5px;font-weight:700;color:#201f1e;background:#fff;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1;font-family:'Segoe UI','Malgun Gothic',sans-serif}
+.aps-act{position:relative}
+/* 연도 선택기(aps-year-sel) — 칩은 단추. PC 는 아래로 펼침, 폰은 아래에서 올라오는 시트. 데이터 없는 연도를 고르면 칩이 노란 테두리 */
+.aps-year{appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;border:1px solid #c8c6c4;border-radius:999px;padding:0 10px 0 12px;font-size:12.5px;font-weight:700;color:#201f1e;background:#fff;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1;font-family:'Segoe UI','Malgun Gothic',sans-serif;transition:border-color .15s,box-shadow .15s}
+.aps-year:hover{border-color:#0078d4;background:#f5faff}
+.aps-year[aria-expanded="true"]{border-color:#0078d4;box-shadow:0 0 0 3px rgba(0,120,212,.15)}
+.aps-year.off{border-color:#e0a800;background:#fffbea;color:#7d5700}
 .aps-year small{font-weight:600;color:#107c10;background:#dff6dd;border-radius:9px;padding:2px 7px;font-size:10px;line-height:1.2}
+.aps-year .aps-year-ch{font-size:10px;color:#605e5c;margin-left:-1px}
+.aps-ymenu{position:absolute;right:0;top:calc(100% + 6px);width:240px;background:#fff;border:1px solid #e1dfdd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:996;padding:6px;font-family:'Segoe UI','Malgun Gothic',sans-serif;text-align:left}
+.aps-ymenu[hidden],.aps-ymenu-bg[hidden]{display:none!important}
+.aps-ymenu .grab{display:none}
+.aps-ymenu-hd{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 8px;font-size:11px;color:#8a8886}
+.aps-ymenu-hd b{font-size:12px;color:#323130;font-weight:700}
+.aps-ymenu ul{list-style:none;margin:0;padding:0}
+.aps-ymenu li{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:#201f1e;font-variant-numeric:tabular-nums;line-height:1.2}
+.aps-ymenu li:hover{background:#f3f2f1}
+.aps-ymenu li.sel{background:#e8f3fc;color:#0b5fa5}
+.aps-ymenu li b{font-weight:700;width:40px}
+.aps-ymenu li small{font-weight:600;color:#107c10;background:#dff6dd;border-radius:9px;padding:2px 7px;font-size:10px}
+.aps-ymenu li .sub{margin-left:auto;margin-top:0;font-size:11px;color:#8a8886;white-space:nowrap}   /* margin-top:0 — SCC·mc·ga·acc-others 의 .header .sub(3px) 가 걸리지 않게 */
+.aps-ymenu li.sel .sub{color:#0b5fa5}
+.aps-ymenu li.none b{color:#8a8886}
+.aps-ymenu li.sel.none b{color:#0b5fa5}
+.aps-ymenu li i.ck{font-style:normal;width:14px;text-align:center;color:#0078d4;visibility:hidden;font-size:12px}
+.aps-ymenu li.sel i.ck{visibility:visible}
+.aps-ymenu-bg{display:none}
+@media (max-width:640px){
+  .aps-ymenu{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;border-radius:16px 16px 0 0;padding:8px 12px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.2);animation:apsYup .22s ease-out}
+  .aps-ymenu .grab{display:block;width:36px;height:4px;border-radius:2px;background:#d2d0ce;margin:2px auto 8px}
+  .aps-ymenu-hd{padding:8px 12px 10px}
+  .aps-ymenu li{padding:13px 12px;font-size:15px;border-radius:9px}
+  .aps-ymenu-bg{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:995}
+}
+@keyframes apsYup{from{transform:translateY(100%)}to{transform:none}}
+/* 데이터 사이트가 없는 연도 — 탭 아래 내용을 감추고 안내 카드만 */
+.aps-year-empty{display:none;background:#fff;border:1px dashed #d2d0ce;border-radius:8px;padding:48px 24px;text-align:center;color:#605e5c;margin-bottom:16px;font-family:'Segoe UI','Malgun Gothic',sans-serif}
+.aps-year-empty .ic{font-size:30px;margin-bottom:10px}
+.aps-year-empty .t{font-size:15px;font-weight:600;color:#323130}
+.aps-year-empty .t b{color:#0b5fa5;font-variant-numeric:tabular-nums}
+.aps-year-empty .d{font-size:12.5px;margin-top:6px;line-height:1.6}
+.aps-year-empty button{margin-top:18px;appearance:none;cursor:pointer;border:1px solid #0078d4;background:#fff;color:#0b5fa5;border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:600;font-family:inherit}
+.aps-year-empty button:hover{background:#f5faff}
+body.aps-year-off #app .tabs ~ :not(#aps-year-empty){display:none!important}
+body.aps-year-off #aps-year-empty{display:block!important}
 .aps-back{text-decoration:none;display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;background:#0078d4;color:#fff;border-radius:999px;padding:0 14px 0 11px;font-size:12.5px;font-weight:600;letter-spacing:-.2px;box-shadow:0 1px 4px rgba(0,120,212,.25);transition:background .15s;white-space:nowrap;line-height:1;font-family:'Segoe UI','Malgun Gothic',sans-serif}
 .aps-back:hover{background:#106ebe}
 .aps-back .ic{font-size:14px;line-height:1}
