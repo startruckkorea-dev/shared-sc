@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SSC</title>
+<title>SSC</title><!-- aps-uiunify 10-07 -->
 <!-- 상세 내용 PDF 출력용 (FA Registration과 동일 구성) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -510,7 +510,7 @@ html.aps-wtx #app{transition:max-width .2s ease}
     <div style="font-size:3rem;margin-bottom:16px">📋</div>
     <div style="font-size:1.15rem;font-weight:800;color:#0f2744;margin-bottom:6px">SSC</div>
     <div style="font-size:.82rem;color:#0078d4;font-weight:600;margin-bottom:22px">Shared Service Center · Star Truck Korea</div>
-    <div id="gate-msg" style="font-size:.85rem;color:#374151;line-height:1.8">🔐 접근 권한을 확인하는 중입니다…</div>
+    <div id="gate-msg" style="font-size:.85rem;color:#374151;line-height:1.8;display:flex;align-items:center;justify-content:center;gap:6px"><span>접근 권한을 확인하는 중입니다</span><span class="dyn-dots"><span></span><span></span><span></span></span></div>   <!-- 10-07: 정지된 「…」 대신 움직이는 점 — 다른 로딩 카드와 같은 모양 -->
     <div id="gate-retry" style="display:none;margin-top:18px">
       <button onclick="location.reload()" style="background:#0078d4;color:#fff;border:none;border-radius:10px;padding:10px 26px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit">다시 시도</button>
     </div>
@@ -1326,7 +1326,7 @@ async function boot(account) {
     if (!_sysConfig) {
       const ev = user.isGuest ? await sscApproverEvidence() : '';
       if (!ev) {
-        document.getElementById('gate-msg').innerHTML = '⚠️ 권한 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.' +
+        document.getElementById('gate-msg').style.display = 'block'; document.getElementById('gate-msg').innerHTML = '⚠️ 권한 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.' +
           (user.isGuest ? '<br><span style="font-size:.75rem;color:#6b7280">외부(게스트) 계정은 IT 에 SSC 권한 확인을 요청해 주세요 — stk_it@hyosung.com</span>' : '');
         document.getElementById('gate-retry').style.display = 'block';
         logAction('SSC', '입장 차단', { reason: '설정 읽기 실패', ids: sscMyIds().join(','), guest: !!user.isGuest });
@@ -1370,7 +1370,7 @@ async function boot(account) {
   } catch(e) {
     // 게이트 단계의 오류는 열지 않고 다시 시도 화면으로. 앱이 이미 열린 뒤의 오류만 예전처럼 안내한다.
     if (document.getElementById('app').style.display !== 'block') {
-      document.getElementById('gate-msg').innerHTML = '⚠️ 연결에 실패했습니다.<br>' + escHtml(e.message || '') + '<br>잠시 후 다시 시도해 주세요.';
+      document.getElementById('gate-msg').style.display = 'block'; document.getElementById('gate-msg').innerHTML = '⚠️ 연결에 실패했습니다.<br>' + escHtml(e.message || '') + '<br>잠시 후 다시 시도해 주세요.';
       document.getElementById('gate-retry').style.display = 'block';
     } else showAlert('SharePoint 연결 오류', e.message, '⚠️');
   }
@@ -1814,7 +1814,7 @@ function renderMyList() {
         '<td>'+fmtDate(f.RequestDate)+'</td>'+
         '<td style="text-align:center">'+wdBtn(item.id, f.Status)+'</td>'+
       '</tr>';
-    }, (fStatus||fType||fKw) ? '조회 결과가 없습니다.' : '등록된 티켓이 없습니다.', 10);
+    }, (fStatus||fType||fKw) ? '조회 결과가 없습니다.' : '신청 내역이 없습니다.', 10);
   } catch(e) { document.getElementById('list-body').innerHTML='<tr><td colspan="10" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
 }
 
