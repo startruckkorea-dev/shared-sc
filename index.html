@@ -492,6 +492,143 @@ html, * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; background-clip: padding-box; }
 </style>
+<style id="aps-mobile">
+/* APS 모바일(10-09 · aps-mobile) — 767px 이하 전용. 웹 화면 무변경 */
+/* SSC(shared-sc · SSC-UAT 공용): 처리함 · 처리 이력 카드의 인라인 overflow:hidden 으로 「승인」 단추가 잘리던 것을 카드 가로 스크롤 + 처리 열 오른쪽 고정으로 푼다.
+   본문 끝 style 블록(헤더 V3 · 행 높이)이 이 블록보다 뒤라 겹치는 곳은 선택자를 한 단계 높였다. 인라인 style 을 이겨야 하는 곳만 !important. */
+@media (max-width: 767px) {
+  /* ── 바탕 · 바깥 여백 12px ── */
+  #app { padding: 12px 12px 24px; }
+  .card { padding: 16px 14px; }
+  .section-title { margin: 16px 0 10px; }
+
+  /* ── 헤더 V3 — 띠 한 줄 · 제목 한 단계 작게 · BU Admin 줄바꿈 허용 ── */
+  .header.aps-hdr { padding: 0 14px 12px; margin-bottom: 12px; }
+  .aps-hdr .aps-band { margin: 0 -14px 10px; padding: 0 14px; gap: 10px; width: auto; }
+  .aps-hdr .aps-band-crumb { flex: 1 1 auto; }
+  .header.aps-hdr .title { font-size: 16px; line-height: 1.3; }
+  .aps-hdr .hdr-contact { display: grid; max-width: 100%; }
+  .aps-hdr .hdr-contact-mail { min-width: 0; overflow-wrap: anywhere; }
+  .aps-hdr .aps-hdr-r { padding-top: 8px; }
+
+  /* ── 탭 — 한 줄 가로 스크롤 · 터치 높이 40px ── */
+  .tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; margin-bottom: 12px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs .tab { flex: none; min-height: 42px; padding: 10px 13px; font-size: 14px; white-space: nowrap; }
+
+  /* ── 신규 티켓 폼 — 1열 · 글자 16px(iOS 자동 확대 방지) ── */
+  .form-row, .form-row.three, .form-row.full { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .form-group select, .form-group input, .form-group textarea,
+  .filter-bar select, .filter-bar input, #confirm-comment { font-size: 16px; }
+  .form-group > select, .form-group > input { min-width: 0; max-width: 100%; }
+  .form-group input[type="date"] { min-height: 40px; }
+  /* 티켓 유형 GL · AR · AP — 3칸 격자(코드 위 · 이름 아래) */
+  .type-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .type-btn { flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 6px; min-height: 52px; text-align: center; }
+  .type-btn .type-name { font-size: 11px; line-height: 1.25; }
+  .subtype-grid { grid-template-columns: minmax(0, 1fr); }
+  .subtype-item { padding: 10px 12px; }
+  .priority-opt { min-height: 40px; padding: 8px 6px; }
+  #tab-new .form-group > div[style*="space-between"] { flex-wrap: wrap; gap: 6px; }
+  .link-ticket-btn { min-height: 34px; }
+  .file-item { gap: 8px; }
+  .file-item > span { min-width: 0; overflow-wrap: anywhere; }
+  .file-item button { min-width: 32px; min-height: 32px; }
+  .assignee-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .assignee-card { min-width: 0; }
+  .a-email { overflow-wrap: anywhere; }
+  .appr-block { padding: 12px; }
+  #tab-new .btn-row { gap: 10px; }
+  #tab-new .btn-row > button { flex: 1 1 0; min-height: 44px; }
+
+  /* ── 목록 — 카드(표 상자)만 가로 스크롤, 문서 전체는 넘치지 않음 ── */
+  #tab-list > .card, #tab-approval > .card, #tab-history > .card, #tab-admin > .card { overflow-x: auto !important; overflow-y: hidden !important; }
+  /* 표 위 · 아래 줄(검색 · 페이지)은 가로로 밀어도 제자리 */
+  #tab-list > .card > :not(table), #tab-approval > .card > :not(table),
+  #tab-history > .card > :not(table), #tab-admin > .card > :not(table) { position: sticky; left: 0; }
+  .filter-bar { gap: 8px; }
+  .filter-bar select { flex: 1 1 0; min-width: 0; min-height: 40px; }
+  .filter-bar input[type="text"] { flex: 1 1 100%; width: auto; min-width: 0; min-height: 40px; }
+  #list-count, #admin-count { margin-left: 0 !important; flex: 1 1 auto; }
+  #tab-admin .filter-bar > button { min-height: 38px; }
+  /* 처리 이력 검색 줄(인라인 폭 200px) */
+  #tab-history > .card > div:first-child { padding: 12px 14px !important; gap: 8px !important; }
+  #tab-history > .card > div:first-child > select { flex: 1 1 0; min-width: 0; min-height: 40px; font-size: 16px !important; }
+  #history-filter-search { flex: 1 1 100%; width: auto !important; min-height: 40px; font-size: 16px !important; }
+  #history-total { margin-left: 0 !important; }
+  #ssc-quick-bar { padding: 8px 10px !important; }
+  /* 처리함 「처리」(승인) 열 — 폭을 단추에 맞추고 오른쪽에 붙여 둔다 */
+  #tab-approval .list-table th:last-child { width: 72px !important; }
+  #tab-approval .list-table th:last-child, #tab-approval .list-table td:last-child:not([colspan]) {
+    position: sticky; right: 0; z-index: 1; background: #fff; text-align: center; box-shadow: -8px 0 8px -8px rgba(0,0,0,.22); }
+  #tab-approval .list-table th:last-child { background: #f3f2f1; }
+  #tab-approval .list-table tbody tr:hover td:last-child:not([colspan]) { background: #f0f6ff; }
+  #tab-approval .list-table td .btn-approve { padding-left: 12px; padding-right: 12px; }
+  /* 빈 목록 · 불러오는 중(한 칸짜리 줄)일 때는 머리줄을 접어 안내 문구가 화면 가운데에 오게 */
+  #tab-list .list-table:has(> tbody > tr:only-child > td[colspan]:only-child) > thead,
+  #tab-approval .list-table:has(> tbody > tr:only-child > td[colspan]:only-child) > thead,
+  #tab-history .list-table:has(> tbody > tr:only-child > td[colspan]:only-child) > thead,
+  #tab-admin .list-table:has(> tbody > tr:only-child > td[colspan]:only-child) > thead { display: none; }
+
+  /* ── 상세 모달 — 좌우 10px · 최대 90% 높이 · 안쪽 스크롤 · 라벨 위 / 값 아래 ── */
+  #detail-modal .modal-box { width: calc(100% - 20px); max-width: none; max-height: 90vh; padding: 16px 16px 0; border-radius: 12px; }
+  #detail-modal .modal-close { top: 6px; right: 6px; width: 40px; height: 40px; }
+  #detail-modal .modal-title { padding-right: 40px; gap: 8px; margin-bottom: 8px; }
+  #btn-export-pdf { min-height: 34px; }
+  .modal-row { flex-direction: column; gap: 2px; padding: 8px 0; }
+  .modal-label { width: auto; min-width: 0; font-size: 11.5px; }
+  .modal-value { word-break: normal; overflow-wrap: anywhere; }
+  #modal-content { padding-bottom: 16px; }
+  #modal-content textarea { font-size: 16px !important; }
+  /* 「✅ 승인」 단추는 스크롤해도 아래에 붙어 있게 */
+  #modal-content > div:last-child:has(> .btn-approve) { position: sticky; bottom: 0; z-index: 2; margin: 14px -16px 0 !important; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #edebe9; box-shadow: 0 -4px 12px rgba(0,0,0,.06); }
+  #modal-content .btn-approve { min-height: 44px; border-radius: 12px !important; }
+
+  /* ── 확인 · 안내 · PKF 변경 팝업 ── */
+  .confirm-box { width: calc(100% - 20px); max-width: none; padding: 20px 16px 16px; }
+  .confirm-box > div:last-child > button { flex: 1 1 0; min-height: 44px; border-radius: 10px !important; }
+  .ssc-alert-box { padding: 24px 18px; }
+  .ssc-alert-btn { min-height: 44px; min-width: 140px; }
+  #pkf-change-overlay > div { width: calc(100% - 20px) !important; max-width: none !important; padding: 20px 16px !important; max-height: 90vh; overflow-y: auto; }
+  #pkf-change-overlay textarea { font-size: 16px !important; }
+  #pkf-change-overlay .pkf-radio-label { min-height: 44px; }
+  #pkf-change-overlay .pkf-radio-label > span { min-width: 0; overflow-wrap: anywhere; }
+  #pkf-change-overlay button { min-height: 44px; }
+  #no-auth-modal > div { padding: 28px 20px !important; }
+  #dyn-loading .dyn-box { padding: 24px 28px; }
+
+  /* ── 관련 티켓 링크 모달 ── */
+  #link-ticket-modal .lt-card { width: calc(100% - 20px); max-width: none; max-height: 90vh; padding: 12px 14px; }
+  .lt-tab { padding: 8px 0; font-size: .74rem; }
+  .lt-card > div:has(> #lt-search-input) { flex-wrap: wrap; }
+  #lt-search-input { flex: 1 1 100% !important; font-size: 16px !important; min-height: 38px; }
+  .lt-filter-chip { flex: 1 1 0; justify-content: center; min-height: 34px; }
+  .lt-daterow { flex-wrap: wrap; gap: 6px; }
+  .lt-daterow select, .lt-daterow input[type=date] { font-size: 16px; min-height: 38px; }
+  .lt-daterow select { flex: 1 1 55%; order: 0; }
+  .lt-date-reset { order: 1; margin-left: auto; padding: 8px 10px; }
+  .lt-daterow input[type=date] { flex: 1 1 calc(50% - 14px); order: 2; }
+  #lt-date-from { order: 2; } .lt-daterow-tilde { order: 3; } #lt-date-to { order: 4; }
+  .lt-result-row { padding: 8px 10px; }
+  .lt-result-meta { flex-wrap: wrap; row-gap: 3px; }
+  .lt-requester { flex: 1 1 100%; min-width: 0; }
+  .lt-col-date { margin-left: auto; }
+  .lt-chk { width: 18px; height: 18px; }
+  .lt-insert-btn { min-height: 40px; }
+
+  /* ── 로그인 · 권한 확인 · 접근 권한 없음 화면 ── */
+  #login-screen { padding: 16px 12px 96px; box-sizing: border-box; }
+  .login-card { padding: 36px 22px 28px; }
+  .login-page-footer { flex-direction: column; gap: 2px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); font-size: 10px; text-align: center; line-height: 1.45; }
+  #gate-screen, #preopen-screen { padding: 16px 12px; box-sizing: border-box; }
+  #gate-screen > div, #preopen-screen > div { width: 100% !important; padding: 32px 20px !important; }
+
+  /* ── 바닥글 ── */
+  body > footer { margin-top: 24px !important; padding: 14px 12px !important; }
+  body > footer > div { justify-content: center !important; text-align: center; }
+  body > footer > div > div:last-child { text-align: center !important; }
+}
+</style>
 </head>
 <body>
 
