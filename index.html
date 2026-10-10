@@ -2873,7 +2873,7 @@ async function showDetail(reqId, fromTab) {
     window._curReqId = reqId;
     window._curDetailTab = fromTab;
     // PDF 출력 버튼 노출 + 파일명 구성에 쓸 정보 보관 (FA Registration과 동일 방식)
-    window._sscCurrentDetail = { requestId: reqId, title: f.Title || '', requesterEmail: f.RequesterEmail || '' };
+    window._sscCurrentDetail = { requestId: reqId, title: f.Title || '', requesterEmail: f.RequesterEmail || '', ticketTitle: f.TicketTitle || '' };
     const _pdfBtn = document.getElementById('btn-export-pdf');
     if (_pdfBtn) _pdfBtn.style.display = 'flex';
   } catch(e){ alert('조회 오류: '+e.message); }
@@ -3069,6 +3069,7 @@ async function exportSscDetailPdf() {
     // 외부 CDN에서 받아오는 라이브러리라 사내 네트워크 사정으로 로드가 실패할 수 있다.
     // 그 경우 'PDFLib is not defined' 같은 원인 모를 오류 대신 상황을 알려준다.
     if (typeof PDFLib === 'undefined' || typeof html2canvas === 'undefined') {
+      try { const _i = window._sscCurrentDetail || {}; logAction('SSC', 'PDF 출력 실패', { 신청: _i.title || '', id: String(_i.requestId || ''), 종류: '티켓 상세', 오류: 'PDF 생성 모듈 로드 실패' }); } catch (_le) {}
       alert('PDF 생성 모듈을 불러오지 못했습니다.\n네트워크 상태를 확인한 뒤 새로고침해 주세요.');
       return;
     }
@@ -3205,8 +3206,11 @@ async function exportSscDetailPdf() {
     a.download = saveFileName;
     document.body.appendChild(a); a.click();
     setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+    // 출력 기록(10-10) — 파일을 내려받은 뒤. logAction 은 기다리지 않는 기록이라 출력이 늦어지지 않는다(실패해도 콘솔 경고만)
+    try { logAction('SSC', 'PDF 출력', { 신청: info.title || '', id: String(info.requestId || ''), 제목: String(info.ticketTitle || '').slice(0, 200), 종류: '티켓 상세', 파일: saveFileName }); } catch (_le) {}
 
   } catch(e) {
+    try { const _i = window._sscCurrentDetail || {}; logAction('SSC', 'PDF 출력 실패', { 신청: _i.title || '', id: String(_i.requestId || ''), 종류: '티켓 상세', 오류: String((e && e.message) || e).slice(0, 300) }); } catch (_le) {}
     alert('PDF 생성 오류: ' + e.message);
     console.error(e);
   } finally {
