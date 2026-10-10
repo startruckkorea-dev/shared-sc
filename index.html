@@ -2527,6 +2527,53 @@ async function loadAdminList() {
   } catch(e){ dynLoad(false); document.getElementById('admin-body').innerHTML='<tr><td colspan="10" style="color:#a4262c;text-align:center">'+e.message+'</td></tr>'; }
 }
 
+/* ── Excel 내보내기 전용 글자 정리(10-10 XLSX-1010) ───────────────────────────────
+   SharePoint 「여러 줄 텍스트」 값은 ExternalClass div 래퍼 · br 태그 · 엔티티(&#58; &amp; …)를 붙여 온다.
+   화면은 이미 걷어내 보여 주는데 Excel 쪽은 원문이 그대로 나가 「Link &#58; https&#58;//…」 처럼 찍혔다.
+   ① 줄 태그(br · /p · /div · /li · /tr)는 줄바꿈으로, 나머지 HTML 태그는 지운다 — 태그 이름 모양이 아닌 꺾쇠 글자(예: 꺾쇠로 감싼 한글)는 남긴다.
+   ② 엔티티는 한 번만 푼다(&amp;#58; → 「&#58;」 글자 — 브라우저와 같다). 10진 · 16진 숫자와 이름 엔티티 모두.
+      표에 없는 이름 엔티티만 DOMParser(스크립트 · 리소스가 돌지 않는 문서)에 「&이름;」 한 토막을 넘겨 푼다 — 사용자 HTML 은 넘기지 않는다.
+   ③ 줄 끝 공백 · 3줄 이상 빈 줄 · 앞뒤 공백 · XML 에 넣을 수 없는 제어 문자를 걷고 한 칸 한도(32,767자) 안으로 자른다.
+   화면 표시(escHtml 등)는 손대지 않는다. 값은 SheetJS 가 문자열 셀로 쓰므로 = + - @ 로 시작해도 수식이 되지 않는다. */
+const _XL_ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', AMP: '&', LT: '<', GT: '>', QUOT: '"' };
+const _XL_C1 = { 128: 8364, 130: 8218, 131: 402, 132: 8222, 133: 8230, 134: 8224, 135: 8225, 136: 710, 137: 8240, 138: 352, 139: 8249, 140: 338, 142: 381,
+  145: 8216, 146: 8217, 147: 8220, 148: 8221, 149: 8226, 150: 8211, 151: 8212, 152: 732, 153: 8482, 154: 353, 155: 8250, 156: 339, 158: 382, 159: 376 };
+const _xlEntCache = new Map();
+function _xlDecodeEnt(s) {
+  return String(s).replace(/&(#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{1,31});/g, (m, e) => {
+    if (e.charAt(0) === '#') {
+      let n = /^#[xX]/.test(e) ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      if (_XL_C1[n]) n = _XL_C1[n];
+      if (n === 9 || n === 10) return String.fromCharCode(n);
+      if (n === 13) return '\n';
+      if (n < 32 || (n >= 127 && n < 160) || (n >= 0xD800 && n <= 0xDFFF) || n > 0x10FFFF) return '';
+      return String.fromCodePoint(n);
+    }
+    if (Object.prototype.hasOwnProperty.call(_XL_ENT, e)) return _XL_ENT[e];
+    if (_xlEntCache.has(e)) return _xlEntCache.get(e);
+    let r = m;
+    try { const t = new DOMParser().parseFromString(m, 'text/html').body.textContent; if (t && t !== m) r = t; } catch (x) {}
+    _xlEntCache.set(e, r);
+    return r;
+  });
+}
+function _xlText(v) {
+  if (v == null) return '';
+  if (typeof v === 'number') return v;
+  let s = String(v).replace(/\r\n?/g, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|li|tr|h[1-6]|blockquote|pre)\s*>/gi, '\n')
+    .replace(/<!-{2}[\s\S]*?-{2}>/g, '')
+    .replace(/<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^<>]*)?\/?>/g, '');
+  s = _xlDecodeEnt(s)
+    .replace(/\u00a0/g, ' ')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFFFE\uFFFF]/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  if (s.length > 32767) s = s.slice(0, 32766) + '…';
+  return s;
+}
 async function exportAdminExcel(){
   loading(true,'Excel 생성 중...');
   try {
@@ -2544,25 +2591,26 @@ async function exportAdminExcel(){
     const fmtComments = raw => {
       let arr=[]; try{ arr=JSON.parse(raw||'[]'); }catch(e){ return ''; }
       if(!arr.length) return '';
-      return arr.map(c=>'['+(c.from==='admin'?'관리자':'처리자')+' · '+(c.date||'')+' · '+(c.email||'')+'] '+(c.text||'')).join('\n');
+      return arr.map(c=>'['+(c.from==='admin'?'관리자':'처리자')+' · '+_xlText(c.date)+' · '+_xlText(c.email)+'] '+_xlText(c.text)).join('\n');
     };
     const rows=[headers,...items.map((i,idx)=>{
       const f=i.fields;
-      const pkf=stripHtml(f.PKFAssignees||'').split(';').map(p=>p.trim()).filter(Boolean).join(', ');
+      // 글자 칸은 모두 원값에서 _xlText 한 번만(XLSX-1010) — 화면과 같은 글자, &#58; 같은 엔티티 · 래퍼 태그 없이
+      const pkf=_xlText(f.PKFAssignees).split(';').map(p=>p.trim()).filter(Boolean).join(', ');
       return[
         items.length-idx,   // 신청 순서 — 가장 오래된 건이 1 (09-10)
-        f.RequesterEmail||'',
-        f.Title||'',
-        f.TicketType||'',
-        stripHtml(f.SubType||''),
+        _xlText(f.RequesterEmail),
+        _xlText(f.Title),
+        _xlText(f.TicketType),
+        _xlText(f.SubType),
         pkf,
-        f.Priority||'',
-        f.Status||'',
-        f.TicketTitle||'',
-        stripHtml(f.Detail||''),
+        _xlText(f.Priority),
+        _xlText(f.Status),
+        _xlText(f.TicketTitle),
+        _xlText(f.Detail),
         // 관련 티켓: 전용 컬럼 우선, 없으면 예전 방식(Detail 토큰)에서 뽑아낸다
         (()=>{
-          const src = f.RelatedTickets || f.Detail || '';
+          const src = _xlText(f.RelatedTickets || f.Detail || '');
           const out = [];
           const re = /\[([^:\]]+):(FA|BP|ACC):(\d+)\]/g;
           let m;
@@ -2581,7 +2629,8 @@ async function exportAdminExcel(){
     const ws=XLSX.utils.aoa_to_sheet(rows);
     // 열 너비 설정 — 상세 내용/결재 의견은 넉넉히 확보해 잘림 없이 다 보이도록
     ws['!cols']=[{wch:6},{wch:28},{wch:28},{wch:8},{wch:25},{wch:22},{wch:10},{wch:10},{wch:32},{wch:50},{wch:34},{wch:12},{wch:12},{wch:12},{wch:16},{wch:16},{wch:16},{wch:60}];
-    ws['!rows']=rows.map((_,i)=>i===0?{hpx:22}:{hpx:60});
+    // 행 높이는 지정하지 않는다(XLSX-1010) — 예전 hpx:60 은 ht=60pt(기본 4줄 높이)로 쓰여, 한 줄 글자 아래로 빈 칸이 3줄 남짓 생겼다.
+    // 무료판 SheetJS 는 줄 바꿈 서식을 쓸 수 없어 글자는 어차피 한 줄로 보인다. 지정이 없으니 Excel 에서 「텍스트 줄 바꿈」 을 켜면 자동 높이로 펼쳐진다.
     ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length-1,c:headers.length-1}})};
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'SSC Tickets');
