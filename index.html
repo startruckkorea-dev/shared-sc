@@ -3106,6 +3106,37 @@ async function apsAppendAttachmentPages(doc, items, opt) {
 }
 /* ═══ /APS-ATTACH v1 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══ APS 공통 — 출력물 「출력자」 (APS-PRINTER v1 · 2026-10-12) ═══════════════════════════════════════
+   출력물(PDF 머리띠 · 인쇄 창 머리글)의 「출력일시」 왼쪽에 「출력자: 이름」 을 함께 적는다 — 출력물만 보고도 누가 뽑았는지 남게(10-12 요청).
+   · 이름은 로그인 계정의 표시 이름(화면 오른쪽 위 계정과 같은 값), 없으면 메일. 계정을 못 읽으면 예전처럼 「출력일시」 만 적는다.
+   · 오른쪽 글이 길어진 만큼 왼쪽 제목(긴 첨부 파일명 등)이 닿으면 제목 가운데를 「…」 로 줄인다 — 앞(「첨부파일: 」 · 이름 앞부분)과
+     끝(확장자 · 「(encrypted)」 같은 상태)은 남긴다. 예전엔 긴 파일명이 오른쪽 「출력일시」 위에 겹쳐 그려졌다.
+   고칠 때는 이 블록을 모든 시스템에서 함께 고친다. */
+function apsPrinterName() {
+  let a = null;
+  try { a = typeof user !== 'undefined' ? user : null; } catch (e) {}
+  // 제어 · 서식 문자(보이지 않는 글자 · 양방향 덮어쓰기 U+202E 등)는 지운다 — 이름이 뒤의 「출력일시」 를 뒤집어 보이게 하지 않게(외부 게스트 이름은 상대 회사가 정한다)
+  const s = String((a && (a.name || a.email || a.username)) || '')
+    .replace(/[\u0000-\u0008\u000E-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F]/g, '').replace(/\s+/g, ' ').trim();
+  const c = Array.from(s);
+  return c.length > 40 ? c.slice(0, 39).join('') + '…' : s;   // 아주 긴 이름은 줄여 머리띠를 넘치지 않게
+}
+function apsPrintStamp(ds) {   // ds = '출력일시: …' → '출력자: 이름  ·  출력일시: …'
+  const n = apsPrinterName();
+  return n ? '출력자: ' + n + '  ·  ' + ds : ds;
+}
+function apsFitText(ctx, text, maxW) {   // ctx 의 지금 글꼴로 재서 maxW(px) 를 넘으면 가운데를 「…」 로 줄인다
+  const s = String(text == null ? '' : text);
+  if (ctx.measureText(s).width <= maxW) return s;
+  const c = Array.from(s);
+  let t = Math.min(24, Math.floor(c.length / 3)), h = c.length - t;
+  const cut = () => c.slice(0, h).join('') + '…' + c.slice(c.length - t).join('');
+  while (h > 1 && ctx.measureText(cut()).width > maxW) h--;
+  while (t > 0 && ctx.measureText(cut()).width > maxW) t--;
+  return cut();
+}
+/* ═══ /APS-PRINTER v1 ═══════════════════════════════════════════════════════════════════════════ */
+
 // 티켓 상세 내용 PDF 출력 — FA Registration의 구현을 그대로 이식.
 // 상세 영역을 html2canvas로 캡처해 A4 페이지로 분할하고, 첨부파일은 pdf-lib으로 병합한다.
 // 이미지 첨부는 직접 삽입, Office/PDF 첨부는 Graph API의 PDF 변환을 거쳐 붙인다.
@@ -3125,7 +3156,7 @@ async function exportSscDetailPdf() {
     const { PDFDocument } = PDFLib;
     const contentEl = document.getElementById('modal-content');
     const _bannerNow = new Date();
-    const _ds = '출력일시: ' + _bannerNow.toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'}) + ' ' + _bannerNow.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'});
+    const _ds = apsPrintStamp('출력일시: ' + _bannerNow.toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'}) + ' ' + _bannerNow.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'}));   // 「출력자: 이름  ·  출력일시: …」(APS-PRINTER v1 · 10-12) — 본문 · 첨부 쪽 머리띠 모두
 
     // 입력용 UI(의견 입력란·등록 버튼, PKF 담당자 변경 버튼)는 출력물에 불필요하므로 캡처 중에만 숨긴다.
     // 내부 스크롤로 잘리는 영역(결재 이력 등)도 펼쳐서 전체가 담기도록 한 뒤 원복한다.
@@ -3160,9 +3191,11 @@ async function exportSscDetailPdf() {
       g.addColorStop(0,'#1F4E79'); g.addColorStop(1,'#3b7dc4');
       hx.fillStyle=g; hx.fillRect(0,0,hc.width,hc.height);
       hx.fillStyle='#3b82f6'; hx.fillRect(0,hc.height-2,hc.width,2);
+      hx.textBaseline='middle'; hx.font='400 12px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
+      const rw=hx.measureText(right).width;   // 오른쪽(출력자 · 출력일시) 폭을 먼저 잰다(APS-PRINTER v1 · 10-12)
       hx.fillStyle='#fff';
       hx.font='500 13px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
-      hx.textBaseline='middle'; hx.fillText(left,14,13);
+      hx.fillText(apsFitText(hx,left,hc.width-rw-58),14,13);   // 긴 제목 · 첨부 파일명이 오른쪽 글에 닿으면 가운데를 줄인다(양끝 14 · 사이 30)
       hx.textAlign='right'; hx.font='400 12px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
       hx.fillStyle='rgba(255,255,255,.6)'; hx.fillText(right,hc.width-14,13);
       return hc.toDataURL('image/png');
