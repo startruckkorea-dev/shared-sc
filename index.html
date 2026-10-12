@@ -3197,7 +3197,9 @@ async function exportSscDetailPdf() {
       hx.font='500 13px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
       hx.fillText(apsFitText(hx,left,hc.width-rw-58),14,13);   // 긴 제목 · 첨부 파일명이 오른쪽 글에 닿으면 가운데를 줄인다(양끝 14 · 사이 30)
       hx.textAlign='right'; hx.font='400 12px "Malgun Gothic","Apple SD Gothic Neo",sans-serif';
-      hx.fillStyle='rgba(255,255,255,.6)'; hx.fillText(right,hc.width-14,13);
+      // 이 시스템 머리띠는 밝은 파랑(#1F4E79 → #3b7dc4)이라 남색 띠와 같은 60% 흰 글자로는 출력자 · 출력일시가 흐렸다(대비 약 2.6:1 · 10-12 SSC 출력물).
+      // 흰 글자로 올려 남색 띠(IT · GW · ACC …)의 60% 글자와 같은 대비(약 4.3:1 이상)를 맞춘다.
+      hx.fillStyle='#fff'; hx.fillText(right,hc.width-14,13);
       return hc.toDataURL('image/png');
     }
     async function dataUrlToUint8(dataUrl) {
