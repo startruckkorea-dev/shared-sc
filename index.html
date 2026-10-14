@@ -1660,12 +1660,37 @@ function logAction(systemName, action, detail) {
         timestampKST: `${dateStr} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())}`,
         user: rawUser, system: systemName, action, detail: detail || {}
       });
-      await fetch(GRAPH + '/drives/' + driveId + '/root:' + path + ':/content', {
+      const _lr = await fetch(GRAPH + '/drives/' + driveId + '/root:' + path + ':/content', {
         method: 'PUT', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body
       });
+      // 저장이 거부돼도(403 · 429 · 5xx) 흔적이 없던 것 — APS(10-10)처럼 콘솔에 경고만 남긴다(10-15). 원 기능엔 영향 없음
+      if (_lr && !_lr.ok) console.warn('[Log] 기록 실패(무시됨, 원 기능엔 영향 없음): HTTP ' + _lr.status + ' —', systemName, action);
     } catch(e) { console.warn('[Log] 기록 실패(무시됨):', e.message); }
   })();
 }
+/* ══ 데이터 변경 기록(10-15) ══
+   상신 · 결재 승인 · 반려 · 철회 · 관리자 데이터 변경을 위 logAction 으로 Logging_data 에 남긴다.
+   action 이름 · detail 모양은 APS 통합 결재함(Logging_data/APS 「결재 승인」 · 「결재 반려」)에 맞춘다 —
+   신청번호 · 제목 · 결과 · 차수 · 결재자 · 처리자 · 대리 · 역할 · 의견 글자 수(의견 원문 · 금액 · 계좌 · 연락처 같은 개인정보는 넣지 않는다).
+   IT 계정 제외 규칙(10-01, IT Manager · IT system service)은 logAction 안에서 그대로 적용된다(감사 예외를 두지 않는다 — 10-15 결정).
+   실제 저장(Graph 쓰기)이 끝난 뒤에만 부르고 기다리지 않는다. detail 을 만들다 오류가 나도 원 기능으로 번지지 않게 감싼다. */
+function logChange(systemName, action, mk) {
+  try { logAction(systemName, action, typeof mk === 'function' ? mk() : (mk || {})); }
+  catch (e) { console.warn('[Log] 기록 생략(원 기능엔 영향 없음):', action, e && e.message); }
+}
+function logAprDetail(f, extra) {   // 결재행 fields(처리 전 값) → APS 와 같은 차수 · 결재자 · 처리자 · 대리 · 역할
+  f = f || {};
+  const orig = String(f.ApproverEmail || '');
+  let dg = null; try { dg = (typeof aacDelegatorOf === 'function') ? aacDelegatorOf(orig) : null; } catch (e) {}
+  return Object.assign({
+    차수: f.ApprovalOrder == null ? '' : f.ApprovalOrder,
+    결재자: orig,
+    처리자: String((typeof user !== 'undefined' && user && (user.email || user.username)) || ''),
+    대리: dg ? '예 — ' + (f.ApproverName || dg.name || orig) + ' 님 대신' : '',
+    역할: String(f.ApproverRole || '')
+  }, extra || {});
+}
+function logErrText(e) { return String((e && e.message) || e || '').slice(0, 200); }
 
 // ══ Boot ══
 /* 입장 순서(09-25): 로그인 → 「권한 확인 중」 화면 → /me · 사이트 · system_config 읽기 → 입장 판정 → 통과한 계정에만 #app.
@@ -2003,6 +2028,7 @@ async function submitTicket() {
     const failedFields = await sscPatchFields(reqId, extraFields);
     if (failedFields.length) {
       const held = await sscHoldFailedTicket(reqId);
+      logChange('SSC', '상신 실패', () => ({ 신청번호: Number(reqId), 제목: ticketNo, 단계: '항목 저장', 정리: held ? '철회 표시' : '정리 실패', 오류: String(failedFields[0].error || '').slice(0, 200) }));   // 10-15
       showAlert('티켓을 접수하지 못했습니다.',
         '저장되지 않은 항목: ' + failedFields.map(x => x.label).join(', ') + '\n' +
         '처리 담당자에게 넘기지 않았고, 이 건(' + ticketNo + ')은 ' + (held ? '「철회」로 표시했습니다.' : '「대기」로 남아 있습니다 — IT팀에 알려 주세요.') + '\n' +
@@ -2090,6 +2116,7 @@ async function submitTicket() {
     } catch(e) {
       console.error('[SSC] 처리자 등록 실패:', reqId, e.message);
       const held = await sscHoldFailedTicket(reqId);
+      logChange('SSC', '상신 실패', () => ({ 신청번호: Number(reqId), 제목: ticketNo, 단계: '처리자 등록', 정리: held ? '철회 표시' : '정리 실패', 오류: logErrText(e) }));   // 10-15
       showAlert('티켓을 접수하지 못했습니다.',
         '처리 담당자 지정(처리자 등록)에 실패했습니다.\n' +
         '이 건(' + ticketNo + ')은 ' + (held ? '「철회」로 표시했습니다.' : '「대기」로 남아 있습니다 — IT팀에 알려 주세요.') + '\n' +
@@ -2103,6 +2130,7 @@ async function submitTicket() {
     const _warn = [];
     if (failedUploads.length) _warn.push('저장되지 않은 첨부파일: ' + failedUploads.join(', '));
     if (refLost) _warn.push('관련 티켓 링크를 저장하지 못했습니다.');
+    logChange('SSC', '상신', () => ({ 신청번호: Number(reqId), 제목: ticketNo, 유형: selectedType, 요청구분: selectedSubtype, 처리자: approvers.length, 첨부실패: failedUploads.length, 경고: _warn.length ? '있음' : '' }));   // 10-15 — 상세 내용 · 금액은 넣지 않는다
     if (_warn.length) {
       showAlert('티켓은 접수되었지만 일부가 저장되지 않았습니다.',
         ticketNo + '\n' + _warn.join('\n') + '\n' +
@@ -2114,6 +2142,7 @@ async function submitTicket() {
     switchTab('list');
   } catch(e) {
     // 티켓 행을 만든 뒤 처리자 등록 전에 난 예기치 않은 오류 — 처리자 없는 「대기」 건이 남지 않게 「철회」로 표시
+    if (!aprDone) logChange('SSC', '상신 실패', () => ({ 신청번호: reqId ? Number(reqId) : '', 제목: ticketNo, 오류: logErrText(e) }));   // 10-15(정리 결과는 아래 「철회」 표시)
     if (reqId && !aprDone) {
       const held = await sscHoldFailedTicket(reqId);
       showAlert('티켓을 접수하지 못했습니다.',
@@ -2586,7 +2615,8 @@ async function exportAdminExcel(){
     if(filterType) items=items.filter(i=>i.fields.TicketType===filterType);
     if(filterSearch) items=items.filter(i=>(i.fields.RequesterEmail||'').toLowerCase().includes(filterSearch)||(i.fields.TicketTitle||i.fields.Title||'').toLowerCase().includes(filterSearch));
     if(!items.length){loading(false);showAlert('내보낼 데이터가 없습니다.','','⚠️');return;}
-    logAction('SSC', 'Excel 내보내기', { 건수: items.length, 필터: { 상태: filterStatus||'전체', 유형: filterType||'전체', 검색어: filterSearch||'' } });
+    // 출력 기록은 파일을 만든 뒤로 옮겼다(10-15) — 예전에는 만들기 전에 「성공」 으로 남아 실패해도 흔적이 없었다
+    const _xlLog = () => ({ 건수: items.length, 필터: { 상태: filterStatus||'전체', 유형: filterType||'전체', 검색어: filterSearch||'' } });
     const headers=['번호','신청자','Title(티켓번호)','유형','요청구분','PKF담당자','우선순위','상태','제목','상세 내용','관련 티켓','Posting Date','Doc Date','Reverse Date','등록일','접수일','처리 완료일','결재 의견'];
     const fmtComments = raw => {
       let arr=[]; try{ arr=JSON.parse(raw||'[]'); }catch(e){ return ''; }
@@ -2635,7 +2665,8 @@ async function exportAdminExcel(){
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'SSC Tickets');
     XLSX.writeFile(wb,'SSCTicket_Admin_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
-  }catch(e){showAlert('Excel 생성 실패',e.message,'⚠️');}
+    logChange('SSC', 'Excel 내보내기', _xlLog);
+  }catch(e){logChange('SSC', 'Excel 내보내기 실패', () => ({ 오류: logErrText(e) }));showAlert('Excel 생성 실패',e.message,'⚠️');}
   finally{loading(false);}
 }
 
@@ -3332,9 +3363,10 @@ async function submitSscComment(reqId) {
       patchFields.AcceptedDate = new Date().toISOString();
     }
     await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:patchFields});
+    logChange('SSC', '업무 처리 의견 등록', () => ({ 신청: cf.Title || ('ID-' + reqId), 화면: fromTab==='admin' ? '관리자' : '처리함', 상태전환: patchFields.Status ? '대기→접수됨' : '없음', 글자수: comment.length }));   // 10-15 — 의견 원문은 넣지 않는다
     await showDetail(reqId, window._curDetailTab);
     if(fromTab==='appr') loadApprovalQueue();
-  } catch(e) { alert('의견 저장 실패: '+e.message); }
+  } catch(e) { logChange('SSC', '업무 처리 의견 등록 실패', () => ({ 신청: 'ID-' + reqId, 글자수: comment.length, 오류: logErrText(e) })); alert('의견 저장 실패: '+e.message); }
   finally { if(btn){btn.disabled=false;btn.textContent='등록';} }
 }
 function decodeSpHtml(v) {
@@ -3434,6 +3466,7 @@ async function savePKFChange(reqId) {
       }
     });
 
+    let _lgApr = '변경';   // 기록용(10-15) — 결재행 교체 결과
     // 2) SSC_Approvals에서 해당 티켓의 PKF담당자 행 찾아서 업데이트
     try {
       const apprData = await apiAll('/sites/'+siteId+'/lists/'+sscApr()+'/items?$expand=fields&$filter=fields/RequestID eq '+parseInt(reqId));
@@ -3448,13 +3481,14 @@ async function savePKFChange(reqId) {
           }
         });
       }
-    } catch(apprErr) { console.warn('Approvals 업데이트 실패:', apprErr.message); }
+    } catch(apprErr) { console.warn('Approvals 업데이트 실패:', apprErr.message); _lgApr = '실패 — ' + logErrText(apprErr); }
+    logChange('SSC', 'PKF 담당자 변경', () => ({ 신청번호: Number(reqId), 이전: fromPKF, 변경후: newPKFNames, 결재행: _lgApr, 사유글자수: reason.length }));   // 관리자 결재자 교체(10-15)
 
     closePKFChangeModal();
     alert('✅ PKF 담당자가 변경되었습니다.');
     closeModal();
     await showDetail(reqId, window._curDetailTab); // 상세 새로고침
-  } catch(e) { alert('변경 오류: ' + e.message); }
+  } catch(e) { logChange('SSC', 'PKF 담당자 변경 실패', () => ({ 신청번호: Number(reqId), 변경후: newPKFNames, 오류: logErrText(e) })); alert('변경 오류: ' + e.message); }
   finally { loading(false); }
 }
 
@@ -3497,17 +3531,24 @@ async function doApproval(){
   if(action==='반려'&&!comment){ alert('반려 사유를 입력해주세요.'); return; }
   closeConfirm();
   closeModal();
+  // 결재 처리 기록(10-15) — APS 통합 결재함과 같은 「결재 승인」 · 「결재 반려」. 결재행을 쓴 뒤에만, 쓰기 전 오류는 「…실패」
+  const _lgAct=action==='반려'?'결재 반려':'결재 승인';
+  let _lgF=null,_lgW=false,_lgDone=false;
+  const _lg=(what,res,ex)=>{_lgDone=true;logChange('SSC',what,()=>Object.assign({신청번호:Number(reqId),제목:String((_lgF&&_lgF.Title)||'').replace(/-\d+$/,''),결과:res},logAprDetail(_lgF,{의견글자수:String(comment||'').length,결재행:apprId}),ex||{}));};
   loading(true);
   try {
     // 이중 처리 방지
     const cur=await api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+apprId+'?$expand=fields');
     if(cur.fields.Status!=='대기'){ showAlert('이미 처리된 항목입니다.','','⚠️'); return; }
+    _lgF=cur.fields;
 
     await api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+apprId,'PATCH',{
       fields:aacPatchWith({ Status:action, ApprovalDate:new Date().toISOString(), Comment:comment||'' }, cur.fields)
     });
+    _lgW=true;
     if(action==='반려'){
       await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{Status:'반려', CompletedDate:new Date().toISOString()}});
+      _lg(_lgAct,'반려 — 신청 반려');
     } else {
       // 센티넬 — 조회 조건에서 Status 를 뺐다. 'RequestID eq N and Status eq 대기(잠김)'
       // 으로 걸면 「마지막 결재자라 0건」과 「조회가 실패해 0건」이 구분되지 않고,
@@ -3517,6 +3558,7 @@ async function doApproval(){
       const _rows = await aprRowsRetry('/sites/'+siteId+'/lists/'+sscApr()+"/items?$expand=fields&$top=50&$filter=fields/RequestID eq "+parseInt(reqId));
       if(!_rows.length){
         console.error('[SSC] 결재 행 조회 결과가 비어 있음 — 승인완료 전환 중단. RequestID:', reqId);
+        _lg(_lgAct,'승인 기록 · 다음 단계로 넘기지 못함(결재 행 조회 0건)');
         showAlert('승인은 기록되었으나 다음 단계로 넘기지 못했습니다.',
           '잠시 후 결재함에서 상태를 다시 확인해 주세요. 계속 같은 증상이면 IT팀(stk_it@hyosung.com)에 알려주세요.' + (aprRowsRetry.lastError ? '\n(원인: ' + aprRowsRetry.lastError + ')' : ''),'⚠️');
         await loadApprovalQueue(); await refreshApprBadge();
@@ -3526,11 +3568,18 @@ async function doApproval(){
                         .sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
       if(next.length) await api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+next[0].id,'PATCH',{fields:{Status:'대기'}});
       else await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{Status:'승인완료', CompletedDate:new Date().toISOString()}});
+      _lg(_lgAct,next.length?'승인 — '+(next[0].fields.ApprovalOrder??'')+'차 결재자에게 넘김':'승인 — 최종 승인(신청 승인완료)');
     }
     showAlert(action+' 처리되었습니다.','',action==='반려'?'❌':'✅');
     await loadApprovalQueue();
     await refreshApprBadge();
-  } catch(e){ showAlert('오류가 발생했습니다.',e.message,'⚠️'); }
+  } catch(e){
+    if(!_lgDone){
+      if(_lgW)_lg(_lgAct,'결재행은 기록됨 · 이후 단계 오류 — '+logErrText(e));   // APS 와 같은 문구
+      else _lg(_lgAct+' 실패','처리 안 함',{오류:logErrText(e)});
+    }
+    showAlert('오류가 발생했습니다.',e.message,'⚠️');
+  }
   finally{ loading(false); }
 }
 
@@ -3547,9 +3596,10 @@ async function withdrawRequest(e, reqId) {
     if(firstSt!=='대기'){ showAlert('철회 불가','이미 결재가 진행된 신청은 철회할 수 없습니다.','⚠️'); return; }
     await Promise.all(myAprs.map(i=>api('/sites/'+siteId+'/lists/'+sscApr()+'/items/'+i.id,'PATCH',{fields:{Status:'철회(잠김)'}})));
     await api('/sites/'+siteId+'/lists/'+sscReq()+'/items/'+reqId,'PATCH',{fields:{Status:'철회'}});
+    logChange('SSC', '철회', () => ({ 신청번호: Number(reqId), 처리: '본인', 결재행: myAprs.length }));   // 10-15
     showAlert('철회 완료','신청이 철회되었습니다.','✅');
     loadMyList();
-  } catch(e){ alert('오류: '+e.message); }
+  } catch(e){ logChange('SSC', '철회 실패', () => ({ 신청번호: Number(reqId), 오류: logErrText(e) })); alert('오류: '+e.message); }
   finally{ loading(false); }
 }
 function wdBtn(reqId, status){
