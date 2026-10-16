@@ -20,7 +20,7 @@ function escHtml(s){
 /* ── 대리 처리 표기 (AAC 연동) ────────────────────────────────────────
    AAC(결재 대리 지정)가 대리인이 처리한 결재행의 ApproverRole 뒤에
    '· 대리(이름 <메일>)' 를 덧붙인다. 그 꼬리를 그대로 화면에 뿌리면
-   '1차결재자 · 대리(Jimmy Lee <jimmy.lee@hyosung.com>)' 처럼 날값이 노출된다.
+   '1차결재자 · 대리(Gildong Hong <hong.gildong@hyosung.com>)' 처럼 날값이 노출된다.
    본래 역할만 남기고, 대리였다는 사실은 알약으로 따로 보여준다.
    IT-Ticket(1877행 부근)·Goodwill-Approval·aps 와 같은 표기·같은 색이다.
    대리가 아니면 aacRolePill 이 빈 문자열을 돌려주므로 호출부에 조건이 필요 없다. */
@@ -763,7 +763,7 @@ button[style*="display:none"]+.pdf-log-note,button[style*="display: none"]+.pdf-
   var av = document.getElementById('aps-av'), av2 = document.getElementById('aps-av2'), nm = document.getElementById('aps-acct-nm');
   function draw() {
     var full = ((src.querySelector('.hdr-user-name') || src).textContent || '').trim();
-    var en = full.match(/\(([A-Za-z][A-Za-z .'-]*)\)\s*$/);                 // 「… (Jimmy Lee)」
+    var en = full.match(/\(([A-Za-z][A-Za-z .'-]*)\)\s*$/);                 // 「… (Gildong Hong)」
     var latin = /^[A-Za-z]/.test(full);                                      // 영문만 있는 이름(John Smith) 은 앞 두 단어 · 두 글자 이니셜
     var short = en ? en[1].trim() : (latin ? full.split(/\s+/).slice(0, 2).join(' ') : (full.split(/\s+/)[0] || ''));
     var ini = (en || latin) ? short.split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase() : short.slice(0, 1);
@@ -4210,7 +4210,7 @@ function ltRenderPage(page) {
   resultsEl.dataset.sys = ltCurrentSys;
   const pagEl = document.getElementById('lt-pagination');
   const kw = (document.getElementById('lt-search-input').value || '').trim().toLowerCase();
-  // 제목뿐 아니라 신청자 이메일로도 찾을 수 있게 한다 (예: 'jimmy.lee' 입력 시 해당 신청 건 전부)
+  // 제목뿐 아니라 신청자 이메일로도 찾을 수 있게 한다 (예: 'hong.gildong' 입력 시 해당 신청 건 전부)
   let filtered = kw
     ? _ltAllItems.filter(it => ((it.fields.Title || '') + ' ' + (it.fields.RequesterEmail || '')).toLowerCase().includes(kw))
     : _ltAllItems;
