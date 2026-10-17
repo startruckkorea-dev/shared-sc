@@ -20,7 +20,7 @@ function escHtml(s){
 /* ── 대리 처리 표기 (AAC 연동) ────────────────────────────────────────
    AAC(결재 대리 지정)가 대리인이 처리한 결재행의 ApproverRole 뒤에
    '· 대리(이름 <메일>)' 를 덧붙인다. 그 꼬리를 그대로 화면에 뿌리면
-   '1차결재자 · 대리(Gildong Hong <hong.gildong@hyosung.com>)' 처럼 날값이 노출된다.
+   '1차결재자 · 대리(Gildong Hong <user@example.com>)' 처럼 날값이 노출된다.
    본래 역할만 남기고, 대리였다는 사실은 알약으로 따로 보여준다.
    IT-Ticket(1877행 부근)·Goodwill-Approval·aps 와 같은 표기·같은 색이다.
    대리가 아니면 aacRolePill 이 빈 문자열을 돌려주므로 호출부에 조건이 필요 없다. */
@@ -32,7 +32,7 @@ function _aacRoleParse(role){
   if(!m) return null;
   const im = m[2].match(/^([\s\S]*?)\s*<([^>]+)>\s*$/);
   const nm = (im ? im[1] : m[2]).trim(), em = im ? im[2].trim() : '';
-  // 이름이 없으면 메일을 이름 자리에 쓴다 — 'on behalf of  · a@x.com' 처럼 비지 않게
+  // 이름이 없으면 메일을 이름 자리에 쓴다 — 'on behalf of  · a@example.com' 처럼 비지 않게
   return { base: m[1].trim(), name: nm || em, email: nm ? em : '' };
 }
 function aacRoleBase(role){
@@ -721,7 +721,7 @@ button[style*="display:none"]+.pdf-log-note,button[style*="display: none"]+.pdf-
         <a href="https://itsm-ticket.startruckkorea.com" target="_blank" style="color:#0078d4;font-weight:600;word-break:break-all;text-decoration:none">itsm-ticket.startruckkorea.com</a>
       </div>
     </div>
-    <div style="font-size:.75rem;color:#94a3b8;margin-bottom:20px">문의: <a href="mailto:stk_it@hyosung.com" style="color:#0078d4;text-decoration:none">stk_it@hyosung.com</a></div>
+    <div style="font-size:.75rem;color:#94a3b8;margin-bottom:20px">문의: <span data-it-contact="IT팀">IT팀</span></div>
     <a href="https://aps.startruckkorea.com/" target="_self"
       style="text-decoration:none;display:inline-flex;align-items:center;gap:7px;background:#0078d4;color:#fff;border-radius:10px;padding:10px 28px;font-size:.85rem;font-weight:600;font-family:inherit;box-shadow:0 1px 4px rgba(0,120,212,.25);transition:background .15s"
       onmouseover="this.style.background='#106ebe'" onmouseout="this.style.background='#0078d4'">
@@ -1491,7 +1491,7 @@ let selectedPKF = []; // [{email, name}]
 let _adminCache = [];
 
 let ADMIN_EMAILS = ['', '', ''];
-let IT_MANAGER   = { name: 'IT Support', email: 'stk_s_sharepoint@hyosung.com' };
+let IT_MANAGER   = { name: 'IT Support', email: '' };   // 설정 파일 IT_MANAGER 로만 채운다(10-17)
 
 // ══ MSAL ══
 async function signIn() {
@@ -1740,7 +1740,7 @@ async function boot(account) {
       const ev = user.isGuest ? await sscApproverEvidence() : '';
       if (!ev) {
         document.getElementById('gate-msg').style.display = 'block'; document.getElementById('gate-msg').innerHTML = '⚠️ 권한 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.' +
-          (user.isGuest ? '<br><span style="font-size:.75rem;color:#6b7280">외부(게스트) 계정은 IT 에 SSC 권한 확인을 요청해 주세요 — stk_it@hyosung.com</span>' : '');
+          (user.isGuest ? '<br><span style="font-size:.75rem;color:#6b7280">외부(게스트) 계정은 '+esc(itTeam('IT팀'))+'에 SSC 권한 확인을 요청해 주세요</span>' : '');
         document.getElementById('gate-retry').style.display = 'block';
         logAction('SSC', '입장 차단', { reason: '설정 읽기 실패', ids: sscMyIds().join(','), guest: !!user.isGuest });
         return;
@@ -1901,6 +1901,33 @@ async function loadSystemConfig() {
 
   // Show admin tab if applicable
 }
+/* IT 문의 메일(10-17) — 코드에 메일 주소를 두지 않는다. system_config_final.xlsx 의 SHARED-SC_IT_CONTACT(C열) → 없으면 CONTACT_EMAIL 순으로 채우고,
+   설정을 못 읽었으면(로그인 전 · 읽기 실패) 메일 없이 「IT팀」 만 보인다. 형식이 맞는 메일만 받으므로 HTML 에 그대로 넣어도 안전하다.
+   data-it-contact 가 붙은 화면 칸은 설정을 읽은 뒤 메일 링크로 바뀐다. */
+var IT_CONTACT_KEY = 'SHARED-SC_IT_CONTACT', __itMail = '';
+function itTeam(label) { label = label || 'IT팀'; return __itMail ? label + '(' + __itMail + ')' : label; }
+function itApplyDom() {
+  try {
+    document.querySelectorAll('[data-it-contact]').forEach(function (el) {
+      el.textContent = '';
+      if (!__itMail) { el.textContent = el.getAttribute('data-it-contact') || 'IT팀'; return; }
+      var a = document.createElement('a'); a.href = 'mailto:' + __itMail; a.textContent = __itMail;
+      a.style.color = '#0078d4'; a.style.textDecoration = 'none'; el.appendChild(a);
+    });
+  } catch (e) {}
+}
+function itSetFromCfg(cfg) {
+  try {
+    if (!cfg || typeof cfg !== 'object') return;
+    var keys = Object.keys(cfg);
+    var pick = function (k) { var kk = keys.find(function (x) { return String(x).trim().toUpperCase() === k.toUpperCase(); }); return kk && cfg[kk] ? String(cfg[kk].email || '').trim().toLowerCase() : ''; };
+    var ok = function (v) { return /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v); };
+    var mail = [pick(IT_CONTACT_KEY), pick('CONTACT_EMAIL')].find(ok);
+    if (mail) __itMail = mail;
+    itApplyDom();
+  } catch (e) {}
+}
+loadSystemConfig = (function (orig) { return async function () { var c = await orig.apply(this, arguments); itSetFromCfg(c || (typeof _sysConfig !== 'undefined' ? _sysConfig : null)); return c; }; })(loadSystemConfig);
 
 function isAdmin() {
   if (!user) return false;
@@ -2046,7 +2073,7 @@ async function submitTicket() {
       showAlert('티켓을 접수하지 못했습니다.',
         '저장되지 않은 항목: ' + failedFields.map(x => x.label).join(', ') + '\n' +
         '처리 담당자에게 넘기지 않았고, 이 건(' + ticketNo + ')은 ' + (held ? '「철회」로 표시했습니다.' : '「대기」로 남아 있습니다 — IT팀에 알려 주세요.') + '\n' +
-        '입력한 내용은 그대로 두었으니 다시 Submit 해 주세요. 계속 실패하면 IT팀(stk_it@hyosung.com)에 알려 주세요.\n' +
+        '입력한 내용은 그대로 두었으니 다시 Submit 해 주세요. 계속 실패하면 '+itTeam('IT팀')+'에 알려 주세요.\n' +
         '(원인: ' + failedFields[0].error + ')', '⚠️');
       return;
     }
@@ -2134,7 +2161,7 @@ async function submitTicket() {
       showAlert('티켓을 접수하지 못했습니다.',
         '처리 담당자 지정(처리자 등록)에 실패했습니다.\n' +
         '이 건(' + ticketNo + ')은 ' + (held ? '「철회」로 표시했습니다.' : '「대기」로 남아 있습니다 — IT팀에 알려 주세요.') + '\n' +
-        '입력한 내용은 그대로 두었으니 다시 Submit 해 주세요. 계속 실패하면 IT팀(stk_it@hyosung.com)에 알려 주세요.\n' +
+        '입력한 내용은 그대로 두었으니 다시 Submit 해 주세요. 계속 실패하면 '+itTeam('IT팀')+'에 알려 주세요.\n' +
         '(원인: ' + e.message + ')', '⚠️');
       return;
     }
@@ -3574,7 +3601,7 @@ async function doApproval(){
         console.error('[SSC] 결재 행 조회 결과가 비어 있음 — 승인완료 전환 중단. RequestID:', reqId);
         _lg(_lgAct,'승인 기록 · 다음 단계로 넘기지 못함(결재 행 조회 0건)');
         showAlert('승인은 기록되었으나 다음 단계로 넘기지 못했습니다.',
-          '잠시 후 결재함에서 상태를 다시 확인해 주세요. 계속 같은 증상이면 IT팀(stk_it@hyosung.com)에 알려주세요.' + (aprRowsRetry.lastError ? '\n(원인: ' + aprRowsRetry.lastError + ')' : ''),'⚠️');
+          '잠시 후 결재함에서 상태를 다시 확인해 주세요. 계속 같은 증상이면 '+itTeam('IT팀')+'에 알려주세요.' + (aprRowsRetry.lastError ? '\n(원인: ' + aprRowsRetry.lastError + ')' : ''),'⚠️');
         await loadApprovalQueue(); await refreshApprBadge();
         return;
       }
