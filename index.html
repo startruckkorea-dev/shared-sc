@@ -1740,7 +1740,7 @@ async function boot(account) {
       const ev = user.isGuest ? await sscApproverEvidence() : '';
       if (!ev) {
         document.getElementById('gate-msg').style.display = 'block'; document.getElementById('gate-msg').innerHTML = '⚠️ 권한 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.' +
-          (user.isGuest ? '<br><span style="font-size:.75rem;color:#6b7280">외부(게스트) 계정은 '+esc(itTeam('IT팀'))+'에 SSC 권한 확인을 요청해 주세요</span>' : '');
+          (user.isGuest ? '<br><span style="font-size:.75rem;color:#6b7280">외부(게스트) 계정은 '+escHtml(itTeam('IT팀'))+'에 SSC 권한 확인을 요청해 주세요</span>' : '');
         document.getElementById('gate-retry').style.display = 'block';
         logAction('SSC', '입장 차단', { reason: '설정 읽기 실패', ids: sscMyIds().join(','), guest: !!user.isGuest });
         return;
