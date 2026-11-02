@@ -3870,6 +3870,7 @@ function openLinkTicketModal() {
   // 결재 세대는 관리자가 세션 도중에도 추가/전환할 수 있으므로, 모달을 열 때마다 결재 인덱스 캐시를 비운다.
   Object.keys(_ltApprCache).forEach(k => delete _ltApprCache[k]);
   _accVolListId = null;
+  _ltItemsP = {}; _ltApprP = {}; _ltVolP = null;   // 11-02 창을 연 동안만 기억(탭 전환 · 체크 변경은 다시 받지 않는다)
   ltInitDateFilter();
   document.getElementById('link-ticket-modal').classList.add('open');
   // 이미 첨부해 둔 티켓은 체크된 상태로 복원 — 모달이 "첨부 목록 편집기" 역할을 하도록
@@ -3900,14 +3901,75 @@ async function ltGetDocDriveId() {
   _ltDocDriveId = docDrive.id;
   return _ltDocDriveId;
 }
+// ── 11-02 빠르게 불러오기 ─────────────────────────────────────────────
+//  · 목록 · 결재행은 화면에 쓰는 칸만 받는다($select) — 예전엔 항목마다 모든 칸(본문 · 첨부 정보 등)을 받았다.
+//  · 「내 신청·결재건」 만 켜져 있으면 결재행은 내 메일(대리 위임 포함)로 서버에서 거른다. ACC팀 결재건 · 최종 결재일 기준일 때만 전부.
+//  · ACC 결재 세대는 동시에 읽고, 세대 파일은 창을 열 때 한 번만 읽는다.
+//  · 목록과 결재 인덱스를 동시에 받고, 탭별 결과는 창을 연 동안 기억한다. 첫 탭을 그린 뒤 나머지 탭을 미리 받아 둔다.
+//  · 칸 지정 · 서버 거르기가 실패하면 예전 방식(전체 칸 · 전량)으로 다시 받는다 — 결과는 같다.
+const LT_SEL = {
+  ACC: 'Title,RequesterEmail,Status,VoucherType,RequestDate,SubmittedDate,B1DocNo',
+  BP: 'Title,RequesterEmail,Status,BPType,RequestDate,SubmittedDate',
+  FA: 'Title,RequesterEmail,Status,FAType,RequestDate,SubmittedDate',
+};
+const LT_APR_SEL = 'RequestID,ApproverEmail,ApproverRole,Status,ApprovalDate';
+let _ltItemsP = {};   // sys → Promise<{ items, scope }>
+let _ltApprP = {};    // sys → Promise(결재 인덱스 받는 중)
+let _ltVolP = null;   // acc_voucher_volumes.json
+async function ltSelAll(path, sel) {
+  try { return await apiAll(path.replace('$expand=fields', '$expand=fields($select=' + sel + ')')); }
+  catch (e) { console.warn('[관련티켓링크] 칸 지정 조회 실패 → 전체 칸으로:', e.message); return apiAll(path); }
+}
+function ltAccVolumes() {
+  if (!_ltVolP) _ltVolP = (async () => {
+    const driveId = await ltGetDocDriveId();
+    const t = await getToken();
+    const res = await fetch(GRAPH + '/drives/' + driveId + '/root:/acc_voucher_volumes.json:/content', { headers: { Authorization: 'Bearer ' + t } });
+    return res.ok ? await res.json() : null;
+  })().catch(e => { console.warn('[관련티켓링크] ACC 세대 파일 조회 실패:', e.message); return null; });
+  return _ltVolP;
+}
 async function ltGetAccListId() {
   if (_accVolListId) return _accVolListId;
-  const driveId = await ltGetDocDriveId();
-  const t = await getToken();
-  const res = await fetch(GRAPH + '/drives/' + driveId + '/root:/acc_voucher_volumes.json:/content', { headers: { Authorization: 'Bearer ' + t } });
-  if (res.ok) { const cfg = await res.json(); _accVolListId = cfg.reqList; }
-  else { _accVolListId = '060b5c19-b1ed-40a3-9dbd-fae9a6648a57'; }
+  const cfg = await ltAccVolumes();
+  _accVolListId = (cfg && cfg.reqList) || '060b5c19-b1ed-40a3-9dbd-fae9a6648a57';
   return _accVolListId;
+}
+// 탭 하나의 목록(권한 범위 · 임시저장 제외까지) — 창을 연 동안 기억
+function ltFetchItems(sys) {
+  if (!_ltItemsP[sys]) {
+    _ltItemsP[sys] = (async () => {
+      if (!siteId) { const s0 = await api('/sites/' + SITE_PATH); siteId = s0.id; }
+      const myEmail = (user?.email || user?.username || '').trim().toLowerCase();
+      const [listId, scope] = await Promise.all([sys === 'ACC' ? ltGetAccListId() : Promise.resolve(LT_SYS[sys].list), ltGetScope(sys)]);
+      const base = '/sites/' + siteId + '/lists/' + listId + '/items?$expand=fields&$top=999';
+      // 권한 범위를 서버 필터로 — 볼 권한이 없는 티켓 원문이 브라우저에 오지 않게
+      let srvFilter = '';
+      if (scope.scope === 'own' && myEmail) srvFilter = "&$filter=fields/RequesterEmail eq '" + myEmail.replace(/'/g, "''") + "'";
+      else if (scope.scope === 'type' && scope.typeFilter) srvFilter = "&$filter=fields/VoucherType eq '" + String(scope.typeFilter).replace(/'/g, "''") + "'";
+      let items = null;
+      if (srvFilter) {
+        try { const v = (await ltSelAll(base + srvFilter, LT_SEL[sys])).value || []; if (v.length) items = v; }   // 0건은 「필터가 안 먹음」 일 수도 있어 전량으로 한 번 더
+        catch (fe) { console.warn('[관련티켓링크] 서버 필터 조회 실패 → 전량조회로 폴백:', fe.message); }
+      }
+      if (items === null) {
+        items = (await ltSelAll(base, LT_SEL[sys])).value || [];
+        if (scope.scope === 'own') items = items.filter(it => (it.fields.RequesterEmail || '').toLowerCase() === myEmail);
+        else if (scope.scope === 'type') items = items.filter(it => (it.fields.VoucherType || '') === scope.typeFilter);
+      }
+      // ACC 임시저장(Draft)은 결재로 올라가지 않은 작성 중 전표 — 연결 대상이 아니다
+      items = items.filter(it => ((it.fields && it.fields.Status) || '').trim() !== '임시저장');
+      return { items, scope };
+    })();
+    _ltItemsP[sys].catch(() => { delete _ltItemsP[sys]; });   // 실패는 기억하지 않는다(다시 누르면 다시 받음)
+  }
+  return _ltItemsP[sys];
+}
+// 내 결재로 볼 메일 — 나 + 지금 유효한 대리 위임(isMyAppr 와 같은 기준)
+function ltMyApprEmails() {
+  const out = new Set([(user?.email || '').trim().toLowerCase(), (user?.username || '').trim().toLowerCase()].filter(Boolean));
+  try { if (typeof _aacDelegated !== 'undefined' && _aacDelegated) [..._aacDelegated.keys()].forEach(e => { if (isMyAppr(e)) out.add(String(e).toLowerCase()); }); } catch (e) {}
+  return [...out];
 }
 // config 키(예: 'FA_ACCOUNTANT_1','FA_ACCOUNTANT_2'...)에 등록된 이메일 목록을 전부 모아서 반환
 function ltCfgEmails(cfg, prefix) {
@@ -3990,32 +4052,48 @@ function ltIsAccRole(role) {
 // 세 시스템 모두 RequestID / ApproverEmail / ApproverRole / Status 필드 구조가 동일하다.
 // ACC만 Approvals가 세대(volume)로 나뉘어 있어 acc_voucher_volumes.json의 모든 세대를 훑는다.
 async function ltGetApprovalIndex(sys) {
-  if (_ltApprCache[sys]) return _ltApprCache[sys];
-  const myEmail = (user?.email || user?.username || '').trim().toLowerCase();
-  const DONE = ['승인', '승인완료', '반려'];   // 아직 '대기'인 건은 "결재한 기록"이 아님
-  const mine = new Set(), acc = new Set();
-  const lastDate = {};   // RequestID -> 가장 늦은 결재 처리일(ISO). "최종 결재일" 필터에 사용
-  let listIds = [];
-  if (sys === 'FA') listIds = ['FA_Approvals'];
-  else if (sys === 'BP') listIds = ['BP_Approvals'];
-  else if (sys === 'ACC') listIds = await ltGetAccApprovalListIds();
-  for (const lid of listIds) {
-    try {
-      const res = await apiAll('/sites/' + siteId + '/lists/' + lid + '/items?$expand=fields&$top=500');
-      (res.value || []).forEach(it => {
-        const f = it.fields || {};
-        if (!DONE.includes(f.Status)) return;
-        const rid = String(f.RequestID);
-        if (isMyAppr(f.ApproverEmail)) mine.add(rid);
-        if (ltIsAccRole(f.ApproverRole)) acc.add(rid);
-        // 결재 단계가 여러 개이므로 가장 늦은 처리일을 최종 결재일로 본다.
-        // (반려로 끝난 건은 그 반려 시점이 마지막 처리일이 된다)
-        if (f.ApprovalDate && (!lastDate[rid] || f.ApprovalDate > lastDate[rid])) lastDate[rid] = f.ApprovalDate;
-      });
-    } catch (e) { console.warn('[관련티켓링크] 결재이력 조회 실패:', lid, e.message); }
-  }
-  _ltApprCache[sys] = { mine, acc, lastDate };
-  return _ltApprCache[sys];
+  // 전부 필요한 경우: ACC팀 결재건(회계 역할 결재행) · 최종 결재일 기준(모든 결재자의 마지막 처리일). 그 밖엔 내 결재행만.
+  const needFull = _ltAccOnly || _ltDateField === 'appr';
+  const have = _ltApprCache[sys];
+  if (have && (have.full || !needFull)) return have;
+  const pk = sys + (needFull ? ':full' : ':mine');
+  if (_ltApprP[pk]) return _ltApprP[pk];
+  _ltApprP[pk] = (async () => {
+    const DONE = ['승인', '승인완료', '반려'];   // 아직 '대기'인 건은 "결재한 기록"이 아님
+    const mine = new Set(), acc = new Set();
+    const lastDate = {};   // RequestID -> 가장 늦은 결재 처리일(ISO). "최종 결재일" 필터에 사용
+    let listIds = [];
+    if (sys === 'FA') listIds = ['FA_Approvals'];
+    else if (sys === 'BP') listIds = ['BP_Approvals'];
+    else if (sys === 'ACC') listIds = await ltGetAccApprovalListIds();
+    const emails = ltMyApprEmails();
+    const mineFilter = !needFull && emails.length
+      ? '&$filter=' + emails.map(e => "fields/ApproverEmail eq '" + e.replace(/'/g, "''") + "'").join(' or ') : '';
+    let full = !mineFilter;
+    const rowsOf = async (lid) => {
+      const base = '/sites/' + siteId + '/lists/' + lid + '/items?$expand=fields&$top=999';
+      if (mineFilter) {
+        try { return (await ltSelAll(base + mineFilter, LT_APR_SEL)).value || []; }
+        catch (fe) { console.warn('[관련티켓링크] 결재행 서버 필터 실패 → 전량:', lid, fe.message); full = true; }
+      }
+      return (await ltSelAll(base, LT_APR_SEL)).value || [];
+    };
+    const all = await Promise.all(listIds.map(lid => rowsOf(lid).catch(e => { console.warn('[관련티켓링크] 결재이력 조회 실패:', lid, e.message); return []; })));
+    all.forEach(rows => rows.forEach(it => {
+      const f = it.fields || {};
+      if (!DONE.includes(f.Status)) return;
+      const rid = String(f.RequestID);
+      if (isMyAppr(f.ApproverEmail)) mine.add(rid);
+      if (ltIsAccRole(f.ApproverRole)) acc.add(rid);
+      // 결재 단계가 여러 개이므로 가장 늦은 처리일을 최종 결재일로 본다(반려로 끝난 건은 그 반려 시점)
+      if (f.ApprovalDate && (!lastDate[rid] || f.ApprovalDate > lastDate[rid])) lastDate[rid] = f.ApprovalDate;
+    }));
+    const idx = { mine, acc, lastDate, full };
+    if (!_ltApprCache[sys] || full || !_ltApprCache[sys].full) _ltApprCache[sys] = idx;
+    return _ltApprCache[sys];
+  })();
+  _ltApprP[pk].then(() => { delete _ltApprP[pk]; }, () => { delete _ltApprP[pk]; });
+  return _ltApprP[pk];
 }
 // ── 기간 필터 (신청일 / 최종 결재일) ──────────────────────────────────────
 // 기본값: 신청일 기준, 오늘로부터 최근 30일
@@ -4178,14 +4256,9 @@ let _ltAccVolIncomplete = false;
 async function ltGetAccApprovalListIds() {
   _ltAccVolIncomplete = false;
   try {
-    const driveId = await ltGetDocDriveId();
-    const t = await getToken();
-    const res = await fetch(GRAPH + '/drives/' + driveId + '/root:/acc_voucher_volumes.json:/content', { headers: { Authorization: 'Bearer ' + t } });
-    if (res.ok) {
-      const cfg = await res.json();
-      const list = (cfg.aprVolumes || []).map(v => v.id).filter(Boolean);
-      if (list.length) return list;
-    }
+    const cfg = await ltAccVolumes();
+    const list = ((cfg && cfg.aprVolumes) || []).map(v => v.id).filter(Boolean);
+    if (list.length) return list;
   } catch (e) { console.warn('[관련티켓링크] ACC 결재 세대 조회 실패:', e.message); }
   _ltAccVolIncomplete = true;
   return ['bf0412d9-6556-46d9-a165-149461a4f286']; // 폴백: 최초 세대(APR01)만 — 결과가 불완전할 수 있음
@@ -4228,70 +4301,33 @@ async function ltToggleMineOnly() {
 }
 async function ltLoadList() {
   const myToken = ++_ltReqToken;
+  const sys = ltCurrentSys;
   const resultsEl = document.getElementById('lt-results');
-  resultsEl.dataset.sys = ltCurrentSys;   // 탭별 컬럼 폭 적용용
+  resultsEl.dataset.sys = sys;   // 탭별 컬럼 폭 적용용
   resultsEl.innerHTML = '<div class="lt-empty">불러오는 중...</div>';
   document.getElementById('lt-search-input').value = '';
   try {
-    if (!siteId) { const s = await api('/sites/' + SITE_PATH); siteId = s.id; }
-    const myEmail = (user?.email || user?.username || '').trim().toLowerCase();
-    // 리스트 ID 확인과 권한 판정은 서로 의존하지 않으므로 동시에 진행한다(왕복 겹치기).
-    const [listId, scope] = await Promise.all([
-      ltCurrentSys === 'ACC' ? ltGetAccListId() : Promise.resolve(LT_SYS[ltCurrentSys].list),
-      ltGetScope(ltCurrentSys)
-    ]);
+    // 권한 범위는 설정 파일(이미 읽음)로 바로 정해진다 — 먼저 보고, 결재 인덱스가 필요하면 목록과 동시에 받는다
+    const scope = await ltGetScope(sys);
     if (myToken !== _ltReqToken) return;
-    const base = '/sites/' + siteId + '/lists/' + listId + '/items?$expand=fields&$top=500';
-    // 권한 범위를 서버 필터로 옮긴다. 전량을 받아 클라이언트에서 버리면
-    // 볼 권한이 없는 티켓 원문까지 브라우저에 도착한다.
-    let srvFilter = '';
-    if (scope.scope === 'own' && myEmail) {
-      srvFilter = "&$filter=fields/RequesterEmail eq '" + myEmail.replace(/'/g, "''") + "'";
-    } else if (scope.scope === 'type' && scope.typeFilter) {
-      srvFilter = "&$filter=fields/VoucherType eq '" + String(scope.typeFilter).replace(/'/g, "''") + "'";
-    }
-    let items = null;
-    if (srvFilter) {
-      try {
-        const r = await apiAll(base + srvFilter);
-        if (myToken !== _ltReqToken) return;
-        const v = r.value || [];
-        // 0건은 "정말 없음"일 수도, "필터가 안 먹음"일 수도 있다.
-        // 빈 목록을 그대로 보여주면 사용자는 구분할 수 없으므로 전량조회로 한 번 더 확인한다.
-        if (v.length) items = v;
-      } catch (fe) {
-        console.warn('[관련티켓링크] 서버 필터 조회 실패 → 전량조회로 폴백:', fe.message);
-      }
-    }
-    if (items === null) {
-      const data = await apiAll(base);
-      if (myToken !== _ltReqToken) return; // 그 사이 다른 탭으로 전환됐으면 이 응답은 버림 (out-of-order 방지)
-      items = data.value || [];
-      if (scope.scope === 'own') {
-        items = items.filter(it => (it.fields.RequesterEmail || '').toLowerCase() === myEmail);
-      } else if (scope.scope === 'type') {
-        items = items.filter(it => (it.fields.VoucherType || '') === scope.typeFilter);
-      }
-    }
-    // ACC Voucher 의 임시저장(Draft)은 아직 결재로 올라가지 않은 작성 중 전표다.
-    // 결재선도 없고 내용이 확정되지 않았으므로 티켓에 연결할 대상이 아니다.
-    // 서버 필터를 쓰든 전량조회로 폴백하든 이 지점을 반드시 지나므로 여기서 한 번만 거른다.
-    items = items.filter(it => ((it.fields && it.fields.Status) || '').trim() !== '임시저장');
-
-    // scope==='all'이면 필터 없이 전체
-    // 일반 신청자(scope='own')는 결재자가 아니라 결재 기록이 없다.
-    // 이 상태에서 "내 결재건"이 기본 체크되어 있으면 항상 빈 목록만 보이고 사용자는 이유를 알 수 없다.
-    // 사용자가 직접 건드린 적이 없을 때만 자동으로 꺼준다(결재 권한자의 기본값은 그대로 유지).
     if (!_ltMineTouched && scope.scope === 'own' && _ltMineOnly) {
       _ltMineOnly = false;
       const _mb = document.getElementById('lt-mine-only');
       if (_mb) _mb.checked = false;
     }
+    const needIdx = _ltMineOnly || _ltAccOnly;
+    const [got, idx0] = await Promise.all([ltFetchItems(sys), needIdx ? ltGetApprovalIndex(sys) : Promise.resolve(null)]);
+    if (myToken !== _ltReqToken) return; // 그 사이 다른 탭으로 전환됐으면 이 응답은 버림 (out-of-order 방지)
+    let items = got.items.slice();
+    // scope==='all'이면 필터 없이 전체
+    // 일반 신청자(scope='own')는 결재자가 아니라 결재 기록이 없다.
+    // 이 상태에서 "내 결재건"이 기본 체크되어 있으면 항상 빈 목록만 보이고 사용자는 이유를 알 수 없다.
+    // 사용자가 직접 건드린 적이 없을 때만 자동으로 꺼준다(결재 권한자의 기본값은 그대로 유지).
     // 결재 기록 필터는 권한 필터와 별개로 한 번 더 걸러낸다(권한을 넓히지 않음).
     // 둘 다 체크하면 합집합, 둘 다 해제하면 필터 없음(권한 범위 전체).
     let apprFilterLabel = '';
     if (_ltMineOnly || _ltAccOnly) {
-      const idx = await ltGetApprovalIndex(ltCurrentSys);
+      const idx = idx0 || await ltGetApprovalIndex(sys);
       if (myToken !== _ltReqToken) return;
       items = items.filter(it => {
         const rid = String(it.id);
@@ -4331,6 +4367,12 @@ async function ltLoadList() {
       if (myToken === _ltReqToken) ltRenderPage(1);
     } catch (e) { console.warn('[관련티켓링크] 결재일 인덱스 확보 실패:', e.message); }
   }
+  // 11-02 나머지 탭은 미리 받아 둔다 — 탭을 누르면 바로 보인다(실패해도 그 탭을 누를 때 다시 받는다)
+  if (myToken === _ltReqToken) setTimeout(() => {
+    Object.keys(LT_SYS).filter(k => k !== sys && !_ltItemsP[k]).forEach(k => {
+      ltFetchItems(k).then(r => { if ((_ltMineOnly && r.scope.scope !== 'own') || _ltAccOnly) ltGetApprovalIndex(k).catch(() => {}); }).catch(() => {});
+    });
+  }, 0);
 }
 let _ltSelected = new Map(); // key: 'SYS:id' -> {sys, title, id}  (모달 안에서 체크 중인 항목)
 let _ltAttached = new Map(); // key: 'SYS:id' -> {sys, title, id}  (실제로 폼에 첨부 확정된 항목)
