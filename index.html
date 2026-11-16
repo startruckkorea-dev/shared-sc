@@ -742,7 +742,7 @@ div[style*="justify-content:space-between"][style*="padding:9px 12px"][style*="b
     var d = document.createElement('div'); d.id = 'apsg-ov'; d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'apsg-t');
     d.innerHTML =
       '<div class="apsg-band"><span><b>STK APS</b><i>›</i><span>' + esc(G.name) + '</span></span>' +
-        (aps ? '' : '<a href="https://aps.startruckkorea.com/" target="_self"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>APS 바로가기</a>') + '</div>' +
+        (aps ? '' : '<a href="https://hs-aps.startruckkorea.com/" target="_self"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>APS 바로가기</a>') + '</div>' +
       '<div class="apsg-main"><div class="apsg-card">' +
         '<div class="apsg-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3.6 17.4a1.4 1.4 0 0 0 2 2l5.7-5.7a4 4 0 0 0 5.4-5.4l-2.5 2.5-2-.5-.5-2z"/></svg></div>' +
         '<div class="apsg-kick">System Maintenance</div>' +
@@ -752,7 +752,7 @@ div[style*="justify-content:space-between"][style*="padding:9px 12px"][style*="b
         '<p class="apsg-en">This system is temporarily unavailable due to maintenance.</p>' +
         (st.note ? '<div class="apsg-note"><span aria-hidden="true">🕒</span>' + esc(st.note) + '</div>' : '') +
         '<div class="apsg-btns"><button type="button" class="apsg-btn pri" onclick="location.reload()">다시 확인</button>' +
-          (aps ? '' : '<a class="apsg-btn" href="https://aps.startruckkorea.com/" target="_self">APS 결재함으로</a>') + '</div>' +
+          (aps ? '' : '<a class="apsg-btn" href="https://hs-aps.startruckkorea.com/" target="_self">APS 결재함으로</a>') + '</div>' +
         (mail ? '<div class="apsg-ct">문의 · IT <a href="mailto:' + esc(mail) + '">' + esc(mail) + '</a></div>' : '') +
       '</div></div>' +
       '<div class="apsg-ft">© ' + new Date().getFullYear() + ' Star Truck Korea · ' + esc(G.name) + '</div>';
@@ -824,11 +824,11 @@ div[style*="justify-content:space-between"][style*="padding:9px 12px"][style*="b
       <div style="font-size:.8rem;color:#374151;line-height:1.8">
         SSC는 <strong>Accounting, Controlling 부서 담당자</strong>만<br>접근 가능합니다.<br><br>
         권한 신청은 아래 시스템을 이용해 주세요.<br>
-        <a href="https://itsm-ticket.startruckkorea.com" target="_blank" style="color:#0078d4;font-weight:600;word-break:break-all;text-decoration:none">itsm-ticket.startruckkorea.com</a>
+        <a href="https://hs-aps.startruckkorea.com/it/" target="_blank" rel="noopener" style="color:#0078d4;font-weight:600;word-break:break-all;text-decoration:none">hs-aps.startruckkorea.com/it</a>
       </div>
     </div>
     <div style="font-size:.75rem;color:#94a3b8;margin-bottom:20px">문의: <span data-it-contact="IT팀">IT팀</span></div>
-    <a href="https://aps.startruckkorea.com/" target="_self"
+    <a href="https://hs-aps.startruckkorea.com/" target="_self"
       style="text-decoration:none;display:inline-flex;align-items:center;gap:7px;background:#0078d4;color:#fff;border-radius:10px;padding:10px 28px;font-size:.85rem;font-weight:600;font-family:inherit;box-shadow:0 1px 4px rgba(0,120,212,.25);transition:background .15s"
       onmouseover="this.style.background='#106ebe'" onmouseout="this.style.background='#0078d4'">
       <span style="font-size:1rem;line-height:1">📬</span><span>돌아가기</span>
@@ -839,7 +839,7 @@ div[style*="justify-content:space-between"][style*="padding:9px 12px"][style*="b
 <!-- ══ App ══ -->
 <div id="app">
   <div class="header aps-hdr">
-    <div class="aps-band"><span class="aps-band-crumb"><b>STK APS</b><i>›</i><span>SSC</span></span><a id="btn-back-aps" href="https://aps.startruckkorea.com/" target="_self" title="STK 통합 결재함" style="display:none" class="aps-band-go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>APS 바로가기</span></a></div>
+    <div class="aps-band"><span class="aps-band-crumb"><b>STK APS</b><i>›</i><span>SSC</span></span><a id="btn-back-aps" href="https://hs-aps.startruckkorea.com/" target="_self" title="STK 통합 결재함" style="display:none" class="aps-band-go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>APS 바로가기</span></a></div>
     <div>
       <div class="title">SSC</div>
       <div style="font-size:11px;color:#605e5c;margin-top:3px">Shared Service Center — Star Truck Korea</div>
@@ -1261,7 +1261,7 @@ window.apsYear = (function () {
       <div style="font-size:.78rem;color:#374151;line-height:1.8;">
         1. BU Admin에게 권한 요청<br>
         2. BU Admin이 아래 시스템으로 티켓 생성<br>
-        <a href="https://itsm-ticket.startruckkorea.com/" target="_blank" style="color:#1d4ed8;font-weight:600;word-break:break-all;">itsm-ticket.startruckkorea.com</a>
+        <a href="https://hs-aps.startruckkorea.com/it/" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600;word-break:break-all;">hs-aps.startruckkorea.com/it</a>
       </div>
     </div>
     <button onclick="document.getElementById('no-auth-modal').style.display='none'" style="background:#0078d4;color:#fff;border:none;border-radius:8px;padding:10px 32px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit;">확인</button>
@@ -3861,10 +3861,16 @@ function showLoginErr(msg){ const el=document.getElementById('login-err'); el.st
 // 관련 티켓 링크 — 본인이 신청한 FA/BP/ACC Voucher 티켓만 검색해서 참조 삽입
 // 2026-08-10 SSC-UAT 검증 완료 후 프로덕션에 반영됨 (이전 "UAT 전용" 주석은 사실과 달라 정정)
 // ══════════════════════════════════════════════════════════
+// 2026-11-16 링크 주소를 HS-APS(정식판)로 — 옛 주소(acc-voucher · bp-master · fa .startruckkorea.com)는 11-18 에 닫힌다.
+//   HS-APS 의 /acc-voucher/ · /bp/ · /fa/ 는 옛 시스템과 같은 ?openId= 단독 상세를 그대로 받는다
+//   (그 건의 신청자 · 결재자(대리 포함) · 시스템 관리자 · PKF 명단(SHARED-SC_2nd_N) · 이 SSC 티켓의 PKF 담당만 열람, 나머지는 「권한 없음」).
+//   로그인 앱(Entra)도 옛 시스템과 같아 PKF(외부) 계정도 그대로 들어간다.
+//   데이터는 SSC 와 같은 운영 SharePoint — SSC-UAT 도 운영 데이터를 읽으므로 UAT(hs-aps-uat)가 아니라 운영 HS-APS 로 연다(번호가 같은 건).
+//   저장값([제목:SYS:번호])에는 주소가 없어, 이미 저장된 티켓의 링크도 화면에서 새 주소로 열린다(저장값 · Excel 내보내기는 그대로).
 const LT_SYS = {
-  FA:  { domain: 'https://fa.startruckkorea.com/',           list: 'FA_Requests' },
-  BP:  { domain: 'https://bp-master.startruckkorea.com/',     list: 'BP_Requests' },
-  ACC: { domain: 'https://acc-voucher.startruckkorea.com/', list: null }, // 프로덕션 — Accounting 담당자 수동변경 기능도 이미 반영되어 있음
+  FA:  { domain: 'https://hs-aps.startruckkorea.com/fa/',          list: 'FA_Requests' },
+  BP:  { domain: 'https://hs-aps.startruckkorea.com/bp/',          list: 'BP_Requests' },
+  ACC: { domain: 'https://hs-aps.startruckkorea.com/acc-voucher/', list: null },   // ACC 신청 목록은 세대 파일에서(아래 ltGetAccListId)
 };
 let ltCurrentSys = 'ACC';  // 기본 탭 — 탭 노출 순서(ACC → BP → FA)와 일치시킴
 let _accVolListId = null;
@@ -4449,7 +4455,7 @@ function ltRenderPage(page) {
       + '<input type="checkbox" class="lt-chk" ' + checked + ' data-posted="' + (posted ? '1' : '') + '" data-title="' + escHtml(f.Title || '') + '" onclick="event.stopPropagation();ltToggleSelect(\'' + key + '\',\'' + ltCurrentSys + '\',this.dataset.title,' + it.id + ',this)">'
       + '<div class="lt-result-body">'
       + '<div class="lt-titlerow">'
-      + '<a class="lt-result-title" href="' + ltDetailUrl(ltCurrentSys, it.id) + '" target="_blank" rel="noopener" title="실제 시스템 상세보기가 새 탭에서 열립니다 (우클릭 → 링크 주소 복사 가능)">' + escHtml(f.Title || '') + '<span class="lt-open-hint">상세보기 ↗</span></a>'
+      + '<a class="lt-result-title" href="' + ltDetailUrl(ltCurrentSys, it.id, f.Title) + '" target="_blank" rel="noopener" title="실제 시스템 상세보기가 새 탭에서 열립니다 (우클릭 → 링크 주소 복사 가능)">' + escHtml(f.Title || '') + '<span class="lt-open-hint">상세보기 ↗</span></a>'
       + postingBadge + '</div>'
       + '<div class="lt-result-meta"><span class="lt-requester"><em>신청자</em>' + escHtml(f.RequesterEmail || '-') + '</span>'
       + statusBadge + typeBadge + dateStr + '</div>'
@@ -4514,7 +4520,7 @@ function ltRenderAttached() {
   el.innerHTML = [..._ltAttached.entries()].map(([key, { sys, title, id }]) =>
     '<span class="lt-chip">'
     + '<span class="lt-chip-sys">' + sys + '</span>'
-    + '<a class="lt-chip-name" href="' + ltDetailUrl(sys, id) + '" target="_blank" rel="noopener" title="' + sys + ' 시스템의 실제 상세보기가 새 탭에서 열립니다 (우클릭 → 링크 주소 복사 가능)">' + esc(title) + ' ↗</a>'
+    + '<a class="lt-chip-name" href="' + ltDetailUrl(sys, id, title) + '" target="_blank" rel="noopener" title="' + sys + ' 시스템의 실제 상세보기가 새 탭에서 열립니다 (우클릭 → 링크 주소 복사 가능)">' + esc(title) + ' ↗</a>'
     + '<span class="lt-chip-x" onclick="ltRemoveAttached(\'' + key + '\')" title="첨부 해제">✕</span>'
     + '</span>').join('');
 }
@@ -4581,18 +4587,22 @@ function linkifyTicketRefs(text) {
     .trim();
   const esc = plain.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return esc.replace(/\[([^:\]]+):(FA|BP|ACC):(\d+)\]/g, (m, label, sys, id) => {
-    const url = ltDetailUrl(sys, id);
+    const url = ltDetailUrl(sys, id, label);
     return '<a class="ref-link" href="' + url + '" target="_blank" rel="noopener" title="' + sys + ' 시스템의 실제 상세보기가 새 탭에서 열립니다">🔗 ' + label + ' ↗</a>';
   });
 }
 // FA/BP/ACC 상세보기 딥링크 URL 생성 — 화면 곳곳에서 같은 규칙을 쓰도록 한 곳으로 모음
-function ltDetailUrl(sys, id) {
+function ltDetailUrl(sys, id, title) {
   // _v: 캐시 무효화용. GitHub Pages는 HTML에 10분짜리 캐시 헤더를 붙이는데,
   // 이 링크는 항상 새 탭에서 열리므로 배포 직후에도 브라우저가 옛 HTML을 그대로 재사용해
   // "분명 배포했는데 화면이 안 바뀐다"는 상황이 반복된다. 분 단위 값이라 같은 분 안에서는
   // 캐시가 살아 있어 매 클릭마다 재다운로드하지는 않는다.
   const _v = Math.floor(Date.now() / 60000);
-  return LT_SYS[sys].domain + '?openId=' + id + '&_v=' + _v;
+  // 11-16 year: 그 건의 연도 — 문서 번호(제목) 「ACC-Voucher-2026-11-02_ID-453」 의 2026.
+  //   HS-APS 는 연도마다 SharePoint 사이트를 나눈다(2027 사이트가 생기면). 연도 없이 열면 그해 사이트의 「같은 번호 다른 건」 이 열릴 수 있어
+  //   연도를 함께 넘긴다(그 연도 사이트가 없으면 HS-APS 가 무시하고 지금처럼 연다). 제목에서 연도를 못 읽으면 빼고 연다.
+  const ym = /-(\d{4})-\d{2}-\d{2}_ID-\d+\b/.exec(String(title || ''));
+  return LT_SYS[sys].domain + '?openId=' + encodeURIComponent(id) + (ym ? '&year=' + ym[1] : '') + '&_v=' + _v;
 }
 // 검색 결과 클릭 시 간이 미리보기 대신 실제 FA/BP/ACC 시스템 상세보기를 새 탭에서 바로 열기
 // (해당 시스템은 이미 openId 단독보기 모드가 구현되어 있어, 그 상세팝업만 뜨고 다른 메뉴로는 못 감)
