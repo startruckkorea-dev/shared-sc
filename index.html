@@ -4784,6 +4784,54 @@ function ltDetailUrl(sys, id, title) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', draw); else draw();
 })();
 </script>
+<script id="aps-photo-js">
+/* 11-12 계정 사진 — 머리의 계정 동그라미(JL)에 내 사진. HS-APS 결재함과 같은 원본(STK-DB 맨 위 employee_photos.json — HFS 가 Flex 사진을 96×96 으로 줄여 올림)에서
+   내 메일의 사진만 꺼낸다. SSC 는 결재함과 주소(도메인)가 달라 결재함이 이 브라우저에 기억해 둔 사진을 같이 쓸 수 없어 직접 읽는다.
+   이 브라우저에 기억해 두고(localStorage aps.photo.v1) 파일이 바뀌었을 때만 다시 받는다. 읽기만 한다(쓰기 없음). 못 읽거나 사진이 없으면 예전처럼 이니셜.
+   사진은 data:image/jpeg 모양만 쓴다. */
+(function () {
+  'use strict';
+  var PHOTO = 'employee_photos.json', LS = 'aps.photo.v1', RE = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/;
+  function css() {
+    if (document.getElementById('aps-photo-css')) return;
+    var s = document.createElement('style'); s.id = 'aps-photo-css';
+    s.textContent = '.aps-av.has-photo{color:transparent!important;background-color:#fff!important;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important;box-shadow:0 0 0 1px rgba(15,39,68,.14)}';
+    (document.head || document.documentElement).appendChild(s);
+  }
+  function setAv(img) {
+    css();
+    ['aps-av', 'aps-av2'].forEach(function (id) { var el = document.getElementById(id); if (!el) return;
+      if (img) { el.style.backgroundImage = 'url("' + img + '")'; el.classList.add('has-photo'); } else { el.style.backgroundImage = ''; el.classList.remove('has-photo'); } });
+  }
+  function lsGet() { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { return null; } }
+  function lsSet(v) { try { if (v) localStorage.setItem(LS, JSON.stringify(v)); else localStorage.removeItem(LS); } catch (e) {} }
+  async function loadPhoto() {
+    var me = [user && user.email, user && user.username].concat((user && user.otherMails) || []).map(function (x) { return String(x || '').trim().toLowerCase(); }).filter(Boolean);
+    if (!me.length) return;
+    var c = lsGet(); if (c && me.indexOf(c.me) >= 0 && RE.test(c.img || '')) setAv(c.img);
+    try {
+      var d = await _getLogDriveId(); if (!d) return;
+      var t = await getToken(); if (!t) return;
+      var mr = await fetch(GRAPH + '/drives/' + d + '/root:/' + PHOTO + '?$select=id,cTag,eTag', { headers: { Authorization: 'Bearer ' + t }, cache: 'no-store' });
+      if (mr.status === 404) { lsSet(null); setAv(null); return; }
+      if (!mr.ok) return;
+      var meta = await mr.json(), tag = meta.cTag || meta.eTag || '';
+      if (c && me.indexOf(c.me) >= 0 && c.tag === tag) return;   // 파일이 그대로면 다시 받지 않는다
+      var cr = await fetch(GRAPH + '/drives/' + d + '/items/' + meta.id + '/content', { headers: { Authorization: 'Bearer ' + t }, cache: 'no-store' });
+      if (!cr.ok) return;
+      var j = await cr.json(), u = j && j.v === 1 && j.users && typeof j.users === 'object' ? j.users : {};
+      var low = {}; Object.keys(u).forEach(function (k) { low[String(k).toLowerCase()] = u[k]; });   // 11-18 운영 반영 때 — 사진 파일의 메일 대소문자와 상관없이(동의서 · KRI 와 같게)
+      var key = me.find(function (k) { return typeof low[k] === 'string' && RE.test(low[k]); });
+      if (key) { lsSet({ me: key, tag: tag, img: low[key] }); setAv(low[key]); } else { lsSet({ me: me[0], tag: tag, img: '' }); setAv(null); }
+    } catch (e) { console.warn('[SSC] 계정 사진을 읽지 못함(이니셜로 표시):', e && e.message); }
+  }
+  // 로그인 · 사이트 확인(boot)이 끝난 뒤 — user.email · siteId 가 생기면 한 번
+  var tries = 0, iv = setInterval(function () {
+    var ready = false; try { ready = !!(user && user.email && siteId); } catch (e) {}
+    if (ready) { clearInterval(iv); loadPhoto(); } else if (++tries > 240) clearInterval(iv);
+  }, 500);
+})();
+</script>
 </body>
 <!-- redeploy -->
 </html>
